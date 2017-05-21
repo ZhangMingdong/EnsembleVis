@@ -1,0 +1,1186 @@
+#include <QtGui>
+
+
+
+#include <QtWidgets/QGridLayout>
+#include <QLabel>
+#include <QMenu>
+#include <QToolBar>
+#include <QMenuBar>
+#include <QSet>
+#include <QMessageBox>
+
+#include "annotation.h"
+
+
+#include "MainWindow.h"
+#include "MainView.h"
+
+#include "CustomTableModel.h"
+#include "DetailWindow.h"
+#include "TableWidget.h"
+
+#include "myglwidget.h"
+
+#include "MeteModel.h"
+
+// using the original temperature data
+#define TEMPERATURE
+
+#ifdef TEMPERATURE
+const char* g_strFileT = "../../data/data5.dat";
+const char* g_strFileE = "../../data/data6.dat";
+const char* g_strFileB = "../../data/data8/pro-2008-01-01-96h-t2-%1.dat";
+#else
+const char* g_strFileT = "../../data/data5.dat";
+const char* g_strFileE = "../../data/data6.dat";
+const char* g_strFileB = "../../data/data9/pro-2016-10-01-120h-h500-%1.dat";
+#endif
+
+// 	char *g_strFileE = "../../data/data10/pre-mod-cma-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-cptec-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-eccc-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-jma-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-kma-20160802-00-96.txt";
+// 	char *g_strFileE = "../../data/data10/pre-mod-ncep-20160802-00-96.txt";
+
+const QString ShowGridLines("ShowGridLines");
+const QString ShowBackground("ShowBackground");
+const QString ShowIntersection("ShowIntersection");
+const QString ShowUnionB("ShowUnionB");
+const QString ShowUnionE("ShowUnionE");
+const QString ShowLineChart("ShowLineChart");
+const QString ShowContourLineTruth("ShowContourLineTruth");
+const QString ShowContourLine("ShowContourLine");
+const QString ShowContourLineMin("ShowContourLineMin");
+const QString ShowContourLineMax("ShowContourLineMax");
+const QString ShowContourLineMean("ShowContourLineMean");
+const QString ShowClusterBS("ShowClusterBS");
+const QString ShowClusterBV("ShowClusterBV");
+
+
+MainWindow::~MainWindow(){
+	delete[] _gridDataMinB;
+	delete[] _gridDataMeanB;
+	delete[] _gridDataMaxB;
+	delete[] _dataB;
+	delete[] _gridLabels;
+	delete[] _gridLabelsF;
+	delete[]_arrLatVarB;
+	for (int i = 0; i < g_gradient_l; i++)
+	{
+		delete[](_gridDataMinB_3[i]);
+		delete[](_gridDataMaxB_3[i]);
+		delete[](_gridDataMaxGradientB[i]);
+		delete[](_gridDataMinGradientB[i]);
+	}
+
+	delete[] _gridIntersectionMaxB;
+	delete[] _gridIntersectionMinB;
+
+	delete[] _gridDataUnionMaxB;
+	delete[] _gridDataUnionMinB;
+	delete[] _gridDataMeanMeanB;
+	delete[] _gridDataMeanVarB;
+	delete[] _gridDataVarMeanB;
+	delete[] _normalizedMVB;
+	delete[] _normalizedVMB;
+	delete[] _dataT;
+	delete[] _arrIntersections;
+
+	delete _pModelCPTEC;
+	delete _pModelKMA;
+	delete _pModelNCEP;
+	delete _pModelCMA;
+	delete _pModelJMA;
+	delete _pModelECCC;
+	delete _pModelECMWF;
+	delete _pModelECMWFTemperature;
+//	delete _pModelECMWFTemperatureT;
+}
+
+MainWindow::MainWindow()
+{
+	_bClustering = false;
+	_nClusters = 20;
+// 	_bClustering = true;
+	resize(QSize(800, 600));
+	_gridDataMinB = new double[g_focus_l * g_lenEnsembles];
+	_gridDataMeanB = new double[g_focus_l * g_lenEnsembles];
+	_gridDataMaxB = new double[g_focus_l * g_lenEnsembles];
+	for (int i = 0; i < g_gradient_l;i++)
+	{
+
+		_gridDataMinB_3[i] = new double[g_focus_l * g_lenEnsembles];
+		_gridDataMaxB_3[i] = new double[g_focus_l * g_lenEnsembles];
+		_gridDataMaxGradientB[i] = new double[g_focus_l];
+		_gridDataMinGradientB[i] = new double[g_focus_l];
+	}
+
+	_dataB = new double[g_focus_l * 4 * g_lenEnsembles];
+	_gridLabels = new int[g_focus_l];
+	_gridLabelsF = new double[g_focus_l];
+	_arrLatVarB = new double[g_focus_h];
+
+	
+	_gridIntersectionMaxB = new double[g_focus_l];
+	_gridIntersectionMinB = new double[g_focus_l];
+
+	_gridDataUnionMaxB = new double[g_focus_l];
+	_gridDataMeanMeanB = new double[g_focus_l];
+	_gridDataUnionMinB = new double[g_focus_l];
+	_gridDataMeanVarB = new double[g_focus_l];
+	_gridDataVarMeanB = new double[g_focus_l];
+
+	_normalizedMVB = new double[g_focus_l];
+	_normalizedVMB = new double[g_focus_l];
+
+	_dataT = new double[g_focus_l];
+
+
+	int nWidth = 360;
+	int nHeight = 181;
+
+	int nFocusX = 0;
+	int nFocusY = 0;
+	int nFocusW = nWidth;
+	int nFocusH = nHeight;
+
+	int nWest;
+	int nEast;
+	int nNorth;
+	int nSouth;
+	int nFocusWest;
+	int nFocusEast;
+	int nFocusNorth;
+	int nFocusSouth;
+
+
+
+	if (g_bGlobalArea)
+	{
+		nFocusX = 0;
+		nFocusY = 0;
+		nFocusW = nWidth;
+		nFocusH = nHeight;
+	}
+	else {
+
+		if (g_bFilter) {
+			nWidth = 91;
+			nHeight = 51;
+		}
+		else {
+			nWidth = 181;
+			nHeight = 101;
+		}
+		if (g_bSubArea)
+		{
+			nFocusX = 0;
+			nFocusY = 40;
+			nFocusW = 31;
+			nFocusH = 11;
+			nWest = 60;
+			nEast = 150;
+			nSouth = 10;
+			nNorth = 60;
+			nFocusWest = 60;
+			nFocusEast = 90;
+			nFocusSouth = 50;
+			nFocusNorth = 60;
+		}
+		else {
+			nFocusX = 0;
+			nFocusY = 0;
+			nFocusW = nWidth;
+			nFocusH = nHeight;
+			nWest = 60;
+			nEast = 150;
+			nSouth = 10;
+			nNorth = 60;
+			nFocusWest = 60;
+			nFocusEast = 150;
+			nFocusSouth = 10;
+			nFocusNorth = 60;
+		}
+
+	}
+
+
+	
+	_pModelCMA = new MeteModel();
+// 	_pModelCMA->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cma-20160802-00-96.txt");
+
+	_pModelCPTEC = new MeteModel();
+// 	_pModelCPTEC->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cptec-20160802-00-96.txt");
+
+	_pModelECCC = new MeteModel();
+// 	_pModelECCC->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-eccc-20160802-00-96.txt");
+
+	_pModelECMWF = new MeteModel();
+// 	_pModelECMWF->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt");
+
+	_pModelJMA = new MeteModel();
+// 	_pModelJMA->InitModel(26, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-jma-20160802-00-96.txt");
+
+
+	_pModelKMA = new MeteModel();
+// 	_pModelKMA->InitModel(24, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-kma-20160802-00-96.txt");
+
+	_pModelNCEP = new MeteModel();
+// 	_pModelNCEP->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ncep-20160802-00-96.txt");
+
+//	_pModelECMWFTemperatureT = new MeteModel();// MeteModel();
+//	_pModelECMWFTemperatureT->InitModel(1, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data5.dat", true
+//		, nWest, nEast, nSouth, nNorth
+//		, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, bFilter);
+
+
+	bool bNewData = true;
+	_pModelECMWFTemperature = new MeteModel();// MeteModel();
+	if (bNewData) {
+		_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
+			, "../../data/t2-mod-ecmwf-20160105-00-72-216.txt", false
+			, nWest, nEast, nSouth, nNorth
+			, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
+	}
+	else {
+
+		_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data6.dat", true
+			, nWest, nEast, nSouth, nNorth
+			, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
+	}
+
+
+	_arrIntersections = new EnsembleIntersections[g_focus_l];
+
+// 	double fValue = 0273.16 + g_temperature + .0001;
+
+	double fValue = g_temperature + .0001;
+
+
+// 	readDataB();
+// 	readDataT();
+
+// 	doStatisticE();
+// 	doStatisticB();
+// 	doStatistic3B();
+// 	if (!_bClustering){
+// // 		readLabels();
+// 		doSegment();
+// 	}
+// 	else{
+// 		doCluster();
+// 	}
+// 
+
+// 	for (int l = 0; l < 1; l++)
+// 	{
+// 		// 1.generate contours of this ensemble
+// 		const double *data = _dataE + l*g_focus_l;
+// 		generateContour(data, _listContourE[0], 2);
+// 		generateContour(data, _listContourE[0], 5);
+// 		generateContour(data, _listContourE[0], 10);
+// 		generateContour(data, _listContourE[0], 30);
+// 		generateContour(data, _listContourE[0], 50);
+// 		generateContour(data, _listContourE[0], 70);
+// 		generateContour(data, _listContourE[0], 90);
+// 	}
+
+// 	generateContour(_gridUnionMinE, _listContourUnionMinE[0], 2);
+// 	generateContour(_gridUnionMaxE, _listContourUnionMaxE[0], 2);
+
+	createSceneAndView();
+	createActions();
+	createConnections();
+	populateMenusAndToolBars();
+
+	QSettings settings;
+	viewShowGridLinesAction->setChecked(settings.value(ShowGridLines, true).toBool());
+	viewShowBackgroundAction->setChecked(settings.value(ShowBackground, true).toBool());
+	viewShowIntersectionAction->setChecked(settings.value(ShowIntersection, true).toBool());
+	viewShowUnionBAction->setChecked(settings.value(ShowUnionB, true).toBool());
+	viewShowUnionEAction->setChecked(settings.value(ShowUnionE, true).toBool());
+	viewShowLineChartAction->setChecked(settings.value(ShowLineChart, true).toBool());
+	viewShowContourLineTruthAction->setChecked(settings.value(ShowContourLineTruth, true).toBool());
+	viewShowContourLineAction->setChecked(settings.value(ShowContourLine, true).toBool());
+	viewShowContourLineMinAction->setChecked(settings.value(ShowContourLineMin, true).toBool());
+	viewShowContourLineMaxAction->setChecked(settings.value(ShowContourLineMax, true).toBool());
+	viewShowContourLineMeanAction->setChecked(settings.value(ShowContourLineMean, true).toBool());
+	viewShowClusterBSAction->setChecked(settings.value(ShowClusterBS, true).toBool());
+	viewShowClusterBVAction->setChecked(settings.value(ShowClusterBV, true).toBool());
+
+
+
+
+// 	_table = new TableWidget(_dataProb_1);
+// 
+// 
+// 	QGridLayout *mainLayout = new QGridLayout;
+// 	mainLayout->addWidget(_view, 0, 1);
+// 	mainLayout->addWidget(_table, 1, 1);
+// 	mainLayout->setColumnStretch(1, 1);
+// 	mainLayout->setColumnStretch(0, 0);
+// 	setLayout(mainLayout);
+
+    setWindowTitle(tr("Ensembles"));
+}
+
+void MainWindow::createSceneAndView(){
+	_scene = new QGraphicsScene(0, 0, g_width, g_height);
+	_scene->setBackgroundBrush(QColor(255, 255, 238));
+
+
+	// 	_view = new MainView;
+	// 	_view->setScene(_scene);
+	// 	connect(_view, SIGNAL(mousePressed(int, int)), SLOT(onMousePressed(int,int)));
+	//     setCentralWidget(_view);
+
+	_view3D = new MyGLWidget;
+	_view3D->SetDataT(_dataT);
+// 	_view3D->SetDataT(_gridDataMeanMeanB);
+// 	_view3D->SetDataT(_gridDataMeanVarB);
+// 	_view3D->SetDataT(_gridDataVarMeanB);
+// 	_view3D->SetDataT(_varE);
+// 	_view3D->SetVar(_gridDataVarMeanB, _gridDataMeanVarB);
+	_view3D->SetVar(_normalizedVMB, _normalizedMVB);
+	_view3D->SetLabels(_gridLabels);
+
+	_view3D->SetDataB(_dataB);
+// 	_view3D->SetModelE(_pModelCMA);
+// 	_view3D->SetModelE(_pModelCPTEC);
+// 	_view3D->SetModelE(_pModelECCC);
+// 	_view3D->SetModelE(_pModelECMWF);
+// 	_view3D->SetModelE(_pModelJMA);
+// 	_view3D->SetModelE(_pModelKMA);
+// 	_view3D->SetModelE(_pModelNCEP);
+	_view3D->SetModelE(_pModelECMWFTemperature);
+//	_view3D->SetModelT(_pModelECMWFTemperatureT);
+
+	// 	_view3D->SetData(_gridDataVarB);
+	// 	_view3D->SetData(_varE);
+	_view3D->SetContourTruth(_listContourT);
+// 	_view3D->SetContourMin(_listContourIntersectionMinB);
+// 	_view3D->SetContourMax(_listContourIntersectionMaxB);
+	// 	_view3D->SetContourMin(_listContourIntersectionMinE);
+	// 	_view3D->SetContourMax(_listContourIntersectionMaxE);
+	_view3D->SetContourIntervalB(_listContourIntersectionMinB, _listContourIntersectionMaxB);
+// 	_view3D->SetContourIntervalE(_listContourUnionMinE, _listContourUnionMaxE);
+	// 	_view3D->SetContourMean(_listContourMeanB);
+	_view3D->SetContourMean(_listContourEnsembleMeanB);
+	_view3D->SetContour(_listContourE);
+// 	_view3D->SetContourMean(_listContourE1);
+// 	_view3D->SetContour(_listContourE2);
+	_view3D->SetMultiStatistic(_listContourEnsembleMin_3, _listContourEnsembleMax_3);
+	_view3D->SetIntersections(_arrIntersections);
+	setCentralWidget(_view3D);
+}
+
+void MainWindow::populateMenusAndToolBars()
+{
+	QAction *separator = 0;
+	// file
+// 	QMenu* fileMenu = menuBar()->addMenu(tr("&File"));
+// 	QToolBar *fileToolBar = addToolBar(tr("File"));
+// 	populateMenuAndToolBar(fileMenu, fileToolBar, QList<QAction*>()
+// 		<< fileNewAction
+// 		<< fileOpenAction
+// 		<< fileSaveAction
+// 		// 		<< fileExportAction 
+// 		<< exportSVGAction
+// 		<< separator
+// 		<< setBackgroundAction
+// 		<< separator
+// 		<< filePrintAction);
+// 	fileMenu->insertAction(exportSVGAction, fileSaveAsAction);
+// 	fileMenu->addSeparator();
+// 	fileMenu->addAction(fileQuitAction);
+// 
+// 	// edit
+// 	editMenu = menuBar()->addMenu(tr("&Edit"));
+// 	QToolBar* editToolBar = addToolBar(tr("Edit"));
+// 	populateMenuAndToolBar(editMenu, editToolBar, QList<QAction*>()
+// 		<< addSphereAction
+// 		<< addRectAction
+// 		<< addLineAction
+// 		<< addTextAction
+// 		<< addArcAction
+// 		<< addSwitchAction
+// 		<< addLinkAction
+// 		<< editDeleteAction
+// 		<< separator
+// 		<< editCutAction
+// 		<< editCopyAction
+// 		<< editPasteAction
+// 		<< separator
+// 		<< bringToFrontAction
+// 		<< sendToBackAction
+// 		<< separator
+// 		<< editAlignmentAction
+// 		<< editClearTransformsAction
+// 		<< separator
+// 		<< editCombineAction
+// 		<< editDetachAction
+// 		<< separator
+// 		<< propertiesAction
+// 		<< editUndoAction
+// 		<< editRedoAction);
+
+
+	// view
+	QMenu* viewMenu = menuBar()->addMenu(tr("&View"));
+	QToolBar* viewToolBar = addToolBar(tr("View"));
+	populateMenuAndToolBar(viewMenu, viewToolBar, QList<QAction*>()
+// 		<< viewZoomInAction
+// 		<< viewZoomOutAction
+		<< separator
+		<< viewShowGridLinesAction
+		<< viewShowBackgroundAction
+		<< viewShowIntersectionAction
+		<< viewShowUnionBAction
+		<< viewShowUnionEAction
+		<< viewShowLineChartAction
+		<< viewShowContourLineTruthAction
+		<< viewShowContourLineAction
+		<< viewShowContourLineMinAction
+		<< viewShowContourLineMaxAction
+		<< viewShowContourLineMeanAction
+		<< viewShowClusterBSAction
+		<< viewShowClusterBVAction
+// 		<< viewShowFullTitleAction
+// 		<< viewOpenFolder
+// 		<< separator
+// 		<< viewShowPublicationList
+// 		<< viewShowArticleList
+// 		<< viewShowProperty
+);
+
+// 	// state
+// 	QMenu* stateMenu = menuBar()->addMenu(tr("State"));
+// 	QToolBar* stateToolBar = addToolBar(tr("State"));
+// 	populateMenuAndToolBar(stateMenu, stateToolBar, QList<QAction*>()
+// 		<< drawSphereAction
+// 		<< drawRectAction
+// 		<< drawLineAction
+// 		<< drawTextAction
+// 		<< drawLinkAction
+// 		<< stateSelectAction);
+// 
+// 	// layer
+// 	QMenu* layerMenu = menuBar()->addMenu(tr("&Layer"));
+// 	layerMenu->addAction(newLayerAction);
+
+}
+
+void MainWindow::populateMenuAndToolBar(QMenu *menu, QToolBar *toolBar, QList<QAction*> actions)
+{
+	foreach(QAction *action, actions) {
+		if (!action) {
+			menu->addSeparator();
+			toolBar->addSeparator();
+		}
+		else {
+			menu->addAction(action);
+			toolBar->addAction(action);
+		}
+	}
+}
+
+void MainWindow::createActions()
+{
+	// view
+	viewShowGridLinesAction = new QAction(tr("Show Gridlines"), this);
+	viewShowGridLinesAction->setIcon(QIcon(":/images/showgrid.png"));
+	viewShowGridLinesAction->setCheckable(true);
+
+	viewShowBackgroundAction = new QAction(tr("Show Background"), this);
+	viewShowBackgroundAction->setIcon(QIcon(":/images/showgrid.png"));
+	viewShowBackgroundAction->setCheckable(true);
+
+	viewShowIntersectionAction = new QAction(tr("Show Intersection"), this);
+	viewShowIntersectionAction->setIcon(QIcon(":/images/ib.png"));
+	viewShowIntersectionAction->setCheckable(true);
+
+	viewShowUnionBAction = new QAction(tr("Show Union B"), this);
+	viewShowUnionBAction->setIcon(QIcon(":/images/ub.png"));
+	viewShowUnionBAction->setCheckable(true);
+
+	viewShowUnionEAction = new QAction(tr("Show Union E"), this);
+	viewShowUnionEAction->setIcon(QIcon(":/images/ue.png"));
+	viewShowUnionEAction->setCheckable(true);
+
+	viewShowLineChartAction = new QAction(tr("Show LineChart"), this);
+	viewShowLineChartAction->setIcon(QIcon(":/images/showgrid.png"));
+	viewShowLineChartAction->setCheckable(true);
+
+	viewShowContourLineTruthAction = new QAction(tr("Show Contour of T"), this);
+	viewShowContourLineTruthAction->setIcon(QIcon(":/images/t.png"));
+	viewShowContourLineTruthAction->setCheckable(true);
+
+	viewShowContourLineAction = new QAction(tr("Show Contour of E"), this);
+	viewShowContourLineAction->setIcon(QIcon(":/images/e.png"));
+	viewShowContourLineAction->setCheckable(true);
+
+	viewShowContourLineMinAction = new QAction(tr("Show Contour of Min"), this);
+	viewShowContourLineMinAction->setIcon(QIcon(":/images/min.png"));
+	viewShowContourLineMinAction->setCheckable(true);
+
+	viewShowContourLineMaxAction = new QAction(tr("Show Contour of Max"), this);
+	viewShowContourLineMaxAction->setIcon(QIcon(":/images/max.png"));
+	viewShowContourLineMaxAction->setCheckable(true);
+
+	viewShowContourLineMeanAction = new QAction(tr("Show Contour of Mean"), this);
+	viewShowContourLineMeanAction->setIcon(QIcon(":/images/b.png"));
+	viewShowContourLineMeanAction->setCheckable(true);
+
+
+	viewShowClusterBSAction = new QAction(tr("Show Cluster BS"), this);
+	viewShowClusterBSAction->setIcon(QIcon(":/images/showgrid.png"));
+	viewShowClusterBSAction->setCheckable(true);
+
+	viewShowClusterBVAction = new QAction(tr("Show Cluster BV"), this);
+	viewShowClusterBVAction->setIcon(QIcon(":/images/showgrid.png"));
+	viewShowClusterBVAction->setCheckable(true);
+
+}
+
+void MainWindow::createConnections(){
+	// view
+	connect(viewShowGridLinesAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowGrid(bool)));
+	connect(viewShowBackgroundAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowBackground(bool)));
+	connect(viewShowIntersectionAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowIntersection(bool)));
+	connect(viewShowUnionBAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowUnionB(bool)));
+	connect(viewShowUnionEAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowUnionE(bool)));
+	connect(viewShowLineChartAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowLineChart(bool)));
+	connect(viewShowContourLineTruthAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineTruth(bool)));
+	connect(viewShowContourLineAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLine(bool)));
+	connect(viewShowContourLineMinAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineMin(bool)));
+	connect(viewShowContourLineMaxAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineMax(bool)));
+	connect(viewShowContourLineMeanAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineMean(bool)));
+	connect(viewShowClusterBSAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowClusterBS(bool)));
+	connect(viewShowClusterBVAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowClusterBV(bool)));
+
+
+}
+
+void MainWindow::readDataB(){
+	for (int l = 0; l < g_lenEnsembles; l++)
+	{
+// 		QString fileName = QString("../../data/data4/pro-2008-01-01-96h-t2-%1.dat").arg(QString::number(l + 1));
+// 		QString fileName = QString("../../data/data7/pro-2008-01-01-96h-t2-%1.dat").arg(QString::number(l + 1));
+// 		QString fileName = QString("../../data/data8/pro-2008-01-01-96h-t2-%1.dat").arg(QString::number(l + 1));
+		QString fileName = QString(g_strFileB).arg(QString::number(l + 1));
+
+
+		QFile file(fileName);
+		if (!file.open(QIODevice::ReadOnly)) {
+			return;
+		}
+		char* temp = new char[file.size()];
+		file.read(temp, file.size());
+		double* f = (double*)temp;
+
+
+		for (int iii = 0; iii < g_grid_height; iii++)
+		{
+// 			int i = g_grid_height-1 - iii;
+			int i = iii;
+			int ii = i - g_focus_y;
+			for (int j = 0; j < g_grid_width; j++)
+			{
+				int jj = j - g_focus_x;
+				if (i >= g_focus_y&&i < g_focus_y + g_focus_h_raw&&j >= g_focus_x&&j < g_focus_x + g_focus_w_raw){
+					// in the scope
+					for (int s = 0; s < 4; s++){
+						if (ii%g_nSpace == 0 && jj%g_nSpace == 0){
+							// on the grid
+							int ij = (ii/g_nSpace)*g_focus_w + jj/g_nSpace;
+							double fValue = *f;
+							_dataB[l*g_focus_l * 4 + (ij)* 4 + s] = *f;
+						}
+						f++;
+					}
+				}
+				else{
+					f += 4;
+				}
+			}
+		}
+		file.close();
+		delete[] temp;
+	}
+
+}
+
+void MainWindow::readDataT(){
+// 	char* fileName = "../../data/data5.dat";
+	QFile file(g_strFileT);
+	if (!file.open(QIODevice::ReadOnly)) {
+		return;
+	}
+
+	int nLen = file.size();
+	char* temp = new char[nLen];
+	file.read(temp, file.size());
+	double* f = (double*)temp;
+
+	for (int i = 0; i < g_grid_height; i++)
+	{
+		int ii = i - g_focus_y;
+		for (int j = 0; j < g_grid_width; j++)
+		{
+			int jj = j - g_focus_x;
+			if (i >= g_focus_y&&i < g_focus_y + g_focus_h_raw&&j >= g_focus_x&&j < g_focus_x + g_focus_w_raw){
+				// in the scope
+				if (ii%g_nSpace==0&&jj%g_nSpace==0){
+					// on the grid
+					_dataT[(ii / g_nSpace)*g_focus_w + jj/g_nSpace] = *f;
+				}
+			}
+			f++;
+		}
+	}
+
+	file.close();
+	delete[] temp;
+}
+
+void MainWindow::doStatisticB(){
+	// 1.calculate min,mean, and max for each grid point, for each ensemble result
+	for (int l = 0; l < g_lenEnsembles; l++){
+		double *data = _dataB + l * 4 * g_focus_l;
+		for (int g = 0; g < g_focus_l; g++){
+			// for each grid point
+			double mb = data[0];
+			double mv = data[1];
+			double m = data[2];
+			double v = data[3];
+			double fMin = m - v;
+			double fMax = m + v;
+			double fMean = m;
+			fMin = fMin*mv + mb;
+			fMax = fMax*mv + mb;
+			fMean = fMean*mv + mb;
+
+// 			if (g == 20 * g_focus_w + 43){
+// 				qDebug() << mb << "\t" << mb << "\t" << m << "\t" << v;
+// 			}
+// 			qDebug() << fMean;
+			_gridDataMinB[l*g_focus_l + g] = fMin;
+			_gridDataMeanB[l*g_focus_l + g] = fMean;
+			_gridDataMaxB[l*g_focus_l + g] = fMax;
+			data += 4;
+		}
+	}
+	// 2.for each point, calculate the union
+	for (int g = 0; g < g_focus_l; g++){
+		double fMaxG = -1000;
+		double fMinG = 1000;
+		double fMeanG = 0;
+		double fVarG = 0;
+		for (int l = 0; l < g_lenEnsembles; l++)
+		{
+			
+			double fMin = _gridDataMinB[l*g_focus_l + g];
+			double fMean = _gridDataMeanB[l*g_focus_l + g];
+			double fMax = _gridDataMaxB[l*g_focus_l + g];
+			if (fMax > fMaxG) fMaxG = fMax;
+			if (fMin < fMinG) fMinG = fMin;
+			fMeanG += fMean;
+			fVarG += fMax - fMean;
+		}
+
+		fMeanG /= g_lenEnsembles;
+		fVarG /= g_lenEnsembles;
+		_gridDataUnionMinB[g] = fMinG;
+		_gridDataUnionMaxB[g] = fMaxG;
+		_gridDataMeanMeanB[g] = fMeanG;
+		_gridDataMeanVarB[g] = fVarG;
+		// calculate variance
+		double fVariance = 0;
+		for (int l = 0; l < g_lenEnsembles; l++){
+			double fMean = _gridDataMeanB[l*g_focus_l + g];
+			double fBias = fMeanG - fMean;
+// 			fVariance += fBias*fBias;
+			fVariance += abs(fBias);
+		}
+// 		_gridDataVarMeanB[g] = sqrt(fVariance / g_lenEnsembles);	
+		_gridDataVarMeanB[g] = fVariance / g_lenEnsembles;
+
+// 		qDebug() << _gridDataMeanVarB[g] << endl;
+	}
+	// 3.for each point, calculate the intersection
+	for (int g = 0; g < g_focus_l; g++){
+		EnsembleIntersections intersection;
+		for (int l = 0; l < g_lenEnsembles; l++)
+		{
+			double fMin = _gridDataMinB[l*g_focus_l + g];
+			double fMax = _gridDataMaxB[l*g_focus_l + g];
+			intersection.Intersect(fMin, fMax);
+		}
+		// remove invalid intersection
+		int nLen = intersection._listIntersection.length();
+		for (int i = nLen - 1; i >= 0; i--)
+		{
+			if (intersection._listIntersection[i]._fMax == intersection._listIntersection[i]._fMin)
+			{
+				intersection._listIntersection.removeAt(i);
+			}
+		}
+		_arrIntersections[g] = intersection;
+	}
+
+	// 4.for each point, calculate the most overlapped intersection
+	for (int g = 0; g < g_focus_l; g++)
+	{
+		EnsembleIntersections intersections = _arrIntersections[g];
+// 		intersections.GetMostOverlapped(_gridIntersectionMin[g], _gridIntersectionMax[g]);
+		intersections.GetMostOverlapped(_gridIntersectionMinB[g], _gridIntersectionMaxB[g], g_nThreshold);
+	}
+
+	// 5.calculate the mean variance of each latitude
+	for (int i = 0; i < g_focus_h;i++)
+	{
+		double fVar = 0;
+		for (int j = 0; j < g_focus_w;j++)
+		{
+			int index = i*g_focus_w + j;
+			for (int l = 0; l < g_lenEnsembles;l++)
+			{
+				fVar += _gridDataMaxB[l*g_focus_l + index] - _gridDataMeanB[l*g_focus_l + index];
+			}
+		}
+		_arrLatVarB[i] = fVar;
+	}
+// 	qDebug() << "Raw";
+// 	for (int i = 0; i < g_focus_h;i++)
+// 	{
+// 		qDebug() << _arrLatVarB[i];
+// 	}
+// 	// calculate regression coefficient
+// 	double ex = 0;
+// 	double ey = 0;
+// 	for (int i = 0; i < g_focus_h;i++)
+// 	{
+// 		ex += i;
+// 		ey += arrVar[i];
+// 	}
+// 	ex /= g_focus_h;
+// 	ey /= g_focus_h;
+// 	double fNumerator = 0;
+// 	double fDenominator = 0;
+// 	for (int i = 0; i < g_focus_h;i++)
+// 	{
+// 		double fXBias = (i - ex);
+// 		fNumerator += fXBias*(arrVar[i] - ey);
+// 		fDenominator += fXBias*fXBias;
+// 	}
+// 	double b = fNumerator / fDenominator;
+// 	double a = ey - b*ex;
+// 	qDebug() << "ex:\t" << ex;
+// 	qDebug() << "ey:\t" << ey;
+// 	qDebug() << "b:\t" << b;
+// 	qDebug() << "a:\t" << a;
+
+
+	// 6.normalize vm and mv
+	double fVMMin = 1000;
+	double fMVMin = 1000;
+	double fVMMax = -1000;
+	double fMVMax = -1000;
+	for (int i = 0; i < g_focus_l; i++){
+		if (_gridDataMeanVarB[i] > fMVMax) fMVMax = _gridDataMeanVarB[i];
+		if (_gridDataMeanVarB[i] < fMVMin) fMVMin = _gridDataMeanVarB[i];
+		if (_gridDataVarMeanB[i] > fVMMax) fVMMax = _gridDataVarMeanB[i];
+		if (_gridDataVarMeanB[i] < fVMMin) fVMMin = _gridDataVarMeanB[i];
+	}
+	double fVMRange = fVMMax - fVMMin;
+	double fMVRange = fMVMax - fMVMin;
+	for (int i = 0; i < g_focus_l;i++)
+	{
+		_normalizedVMB[i] = (_gridDataVarMeanB[i] - fVMMin) / fVMRange;
+		_normalizedMVB[i] = (_gridDataMeanVarB[i] - fMVMin) / fMVRange;
+	}
+}
+
+void MainWindow::doStatistic3B(){
+	for (int s = 0; s < g_gradient_l; s++)
+	{
+		double fBelief = s / 20.0;
+		// 1.calculate min,mean, and max for each grid point, for each ensemble result
+		for (int l = 0; l < g_lenEnsembles; l++){
+			double *data = _dataB + l * 4 * g_focus_l;
+			for (int g = 0; g < g_focus_l; g++){
+				// for each grid point
+				double mb = data[0];
+				double mv = data[1];
+				double m = data[2];
+				double v = data[3];
+				double fMin = m - v*fBelief;
+				double fMax = m + v*fBelief;
+				double fMean = m;
+				fMin = fMin*mv + mb;
+				fMax = fMax*mv + mb;
+				fMean = fMean*mv + mb;
+				_gridDataMinB_3[s][l*g_focus_l + g] = fMin;
+				_gridDataMaxB_3[s][l*g_focus_l + g] = fMax;
+
+				data += 4;
+			}
+		}
+		// 2.for each point, calculate the union
+		for (int g = 0; g < g_focus_l; g++){
+			double fMaxG = -1000;
+			double fMinG = 1000;
+			for (int l = 0; l < g_lenEnsembles; l++)
+			{
+				double fMin = _gridDataMinB_3[s][l*g_focus_l + g];
+				double fMax = _gridDataMaxB_3[s][l*g_focus_l + g];
+				if (fMax>fMaxG) fMaxG = fMax;
+				if (fMin < fMinG) fMinG = fMin;
+			}
+			_gridDataMinGradientB[s][g] = fMinG;
+			_gridDataMaxGradientB[s][g] = fMaxG;
+		}
+	}
+}
+
+void MainWindow::onMousePressed(int x, int y){
+	int i = x*g_grid_width*1.0 / g_width;
+	int j = y*g_grid_height*1.0 / g_height;
+	int nIndex = i*g_grid_width + j;
+	_table->SetIndex(nIndex);
+}
+   
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+// 	if (okToClearData()) 
+	{
+		QSettings settings;
+		settings.setValue(ShowGridLines, viewShowGridLinesAction->isChecked());
+		settings.setValue(ShowBackground, viewShowBackgroundAction->isChecked());
+		settings.setValue(ShowIntersection, viewShowIntersectionAction->isChecked());
+		settings.setValue(ShowUnionB, viewShowUnionBAction->isChecked());
+		settings.setValue(ShowUnionE, viewShowUnionEAction->isChecked());
+		settings.setValue(ShowLineChart, viewShowLineChartAction->isChecked());
+		settings.setValue(ShowContourLineTruth, viewShowContourLineTruthAction->isChecked());
+		settings.setValue(ShowContourLine, viewShowContourLineAction->isChecked());
+		settings.setValue(ShowContourLineMin, viewShowContourLineMinAction->isChecked());
+		settings.setValue(ShowContourLineMax, viewShowContourLineMaxAction->isChecked());
+		settings.setValue(ShowContourLineMean, viewShowContourLineMeanAction->isChecked());
+		settings.setValue(ShowClusterBS, viewShowClusterBSAction->isChecked());
+		settings.setValue(ShowClusterBV, viewShowClusterBVAction->isChecked());
+		event->accept();
+	}
+// 	else
+// 		event->ignore();
+}
+
+void MainWindow::buildDistanceMatrix_ensemble(double** disMatrix){
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		disMatrix[i] = new double[g_focus_l];
+	}
+	// vector at point i and j
+	double dataI[g_lenEnsembles];
+	double dataJ[g_lenEnsembles];
+	// 1.calculate the distance
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		int latI = i / g_focus_w;			// latitude of index i
+		int lonI = i % g_focus_w;
+		for (int l = 0; l < g_lenEnsembles; l++)
+		{
+			// variance
+			dataI[l] = (_gridDataMaxB[l * g_focus_l + i] - _gridDataMeanB[l * g_focus_l + i]) / _arrLatVarB[latI];
+		}
+		for (int j = 0; j < i; j++)
+		{
+			int latJ = j / g_focus_w;			// latitude of index j
+			int lonJ = j % g_focus_w;
+			for (int l = 0; l < g_lenEnsembles; l++)
+			{
+				// variance
+				dataJ[l] = (_gridDataMaxB[l * g_focus_l + j] - _gridDataMeanB[l * g_focus_l + j]) / _arrLatVarB[latJ];
+			}
+			double fResult = 0;
+			for (int l = 0; l < g_lenEnsembles; l++)
+			{
+				double fBias = dataI[l] - dataJ[l];
+				fResult += fBias*fBias;
+			}
+			double biasLon = lonI - lonJ;
+			double biasLat = latI - latJ;
+			// 			disMatrix[i][j] = sqrt(fResult) + sqrt(biasLon*biasLon + biasLat*biasLat)*0.0001;
+			disMatrix[i][j] = sqrt(fResult);
+			// 			qDebug() << sqrt(fResult);
+			// 			qDebug() << disMatrix[i][j];
+		}
+	}
+}
+
+void MainWindow::buildDistanceMatrix_vb(double** disMatrix){
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		disMatrix[i] = new double[g_focus_l];
+	}
+	// 1.calculate the distance
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		int latI = i / g_focus_w;			// latitude of index i
+		int lonI = i % g_focus_w;
+// 		double fVMI = _gridDataVarMeanB[i];
+// 		double fMVI = _gridDataMeanVarB[i];
+		double fVMI = _normalizedVMB[i];
+		double fMVI = _normalizedMVB[i];
+		for (int j = 0; j < i; j++)
+		{
+			int latJ = j / g_focus_w;			// latitude of index j
+			int lonJ = j % g_focus_w;
+// 			double fVMJ = _gridDataVarMeanB[j];
+// 			double fMVJ = _gridDataMeanVarB[j];
+			double fVMJ = _normalizedVMB[j];
+			double fMVJ = _normalizedMVB[j];
+			double fBias1 = fVMJ - fVMI;
+			double fBias2 = fMVJ - fMVI;
+			double biasLon = abs(lonI - lonJ);
+			double biasLat = abs(latI - latJ);
+
+			// four kinds of distance calculation methods
+// 			disMatrix[i][j] = sqrt(fBias1*fBias1 + fBias2*fBias2) + sqrt(biasLat*biasLat + biasLon*biasLon)*0.5;
+// 			disMatrix[i][j] = qMax(biasLon, biasLat);
+// 			disMatrix[i][j] = sqrt(biasLon*biasLon + biasLat*biasLat);
+			disMatrix[i][j] = sqrt(fBias1*fBias1 + fBias2*fBias2);
+		}
+	}
+}
+
+void MainWindow::doCluster(){
+	// 0.initialize the distance matrix
+	double** disMatrix = new double*[g_focus_l];
+// 	buildDistanceMatrix_ensemble(disMatrix);
+	buildDistanceMatrix_vb(disMatrix);
+
+	// 2.clustering
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		_gridLabels[i] = i;
+	}
+	// start from every grid point as a cluster
+	int nClusters = g_focus_l;
+	// state of each grid point
+	int arrState[g_focus_l];
+	for (int i = 0; i<g_focus_l; i++) arrState[i] = 1;	// 0 means this grid has been merged to other cluster
+	while (nClusters >_nClusters)
+	{
+		// 2.1.Find the nearest points pair nI,nJ
+		int nI, nJ;
+		double fMinDis = 10000.0;
+		for (int i = 0; i < g_focus_l; i++)
+		{
+			if (arrState[i] == 0) continue;
+			// 			int latI = i / g_focus_w;			// latitude of index i
+			// 			int lonI = i%g_focus_w;
+
+			for (int j = 0; j < i; j++)
+			{
+				if (arrState[j] == 0) continue;
+				// 				int latJ = j / g_focus_w;			// latitude of index j
+				// 				int lonJ = j%g_focus_w;
+				// 				double fBiasLat = latJ - latI;
+				// 				double fBiasLon = lonJ - lonI;
+				if (_gridLabels[i] == _gridLabels[j]) continue;
+				if (disMatrix[i][j]/*+sqrt(fBiasLat*fBiasLat+fBiasLon*fBiasLon)*/ < fMinDis)
+				{
+					nI = i;
+					nJ = j;
+					fMinDis = disMatrix[i][j];
+				}
+			}
+		}
+
+		int nSourceLabel = _gridLabels[nI];
+		int nTargetLabel = _gridLabels[nJ];
+
+		// 		int latI = nI / g_focus_w;			
+		// 		int lonI = nI % g_focus_w;
+		// 		int latJ = nJ / g_focus_w;			
+		// 		int lonJ = nJ % g_focus_w;
+		// 2.2.search all the point with source label, reset distance and state
+		for (int i = 0; i < g_focus_l; i++)
+		{
+			if (_gridLabels[i] == nSourceLabel)
+			{
+				// 2.2.1.reset the label
+				_gridLabels[i] = nTargetLabel;
+				if (arrState[i] == 1)
+				{
+					// 2.2.2.reset distance
+					for (int j = 0; j < g_focus_l; j++)
+					{
+						if (j == i || j == nJ) continue;
+						// as we merge i to nJ
+						// for each j, if dis(i,j)>dis(nJ,j), we use dis(i,j) to replace dis(nJ,j)
+						double fDisIJ;
+						if (i < j) fDisIJ = disMatrix[j][i];
+						else fDisIJ = disMatrix[i][j];
+						if (j < nJ){
+							disMatrix[nJ][j] = qMax(disMatrix[nJ][j], fDisIJ);
+						}
+						else{
+							disMatrix[j][nJ] = qMax(disMatrix[j][nJ], fDisIJ);
+
+						}
+					}
+					arrState[i] = 0;
+				}
+			}
+		}
+		nClusters--;
+	}
+
+
+	// 3.release the resource
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		delete[]disMatrix[i];
+	}
+	delete[]disMatrix;
+	int nBias = 0;
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		// if i is a valid label
+		bool bValidLabel = false;
+		for (int j = 0; j < g_focus_l; j++)
+		{
+			if (_gridLabels[j] == i){
+				_gridLabels[j] -= nBias;
+				bValidLabel = true;
+			}
+		}
+		if (!bValidLabel) nBias++;
+	}
+	// 4.save the labels
+	{
+		// print them
+		QFile caFile("Label.txt");
+		caFile.open(QIODevice::WriteOnly | QIODevice::Text);
+
+		if (!caFile.isOpen()){
+			qDebug() << "- Error, unable to open" << "outputFilename" << "for output";
+		}
+		QTextStream outStream(&caFile);
+		for (int i = 0; i < g_focus_l; i++)
+		{
+			outStream << _gridLabels[i] << endl;
+		}
+		caFile.close();
+	}
+}
+
+void MainWindow::doSegment(){
+	// 1.calculate the distance
+	double fThreshold = 0.5;
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		double fVMI = _normalizedVMB[i];
+		double fMVI = _normalizedMVB[i];
+		_gridLabels[i] = 0;
+		if (fVMI > fThreshold) _gridLabels[i] += 1;
+		if (fMVI > fThreshold) _gridLabels[i] += 2;
+	}
+}
+
+void MainWindow::readLabels(){
+	char* fileName = "Label.txt";
+	QFile caFile(fileName);
+	caFile.open(QIODevice::ReadOnly | QIODevice::Text);
+
+	if (!caFile.isOpen()){
+		qDebug() << "- Error, unable to open" << "outputFilename" << "for output";
+	}
+	QTextStream inStream(&caFile);
+	int nLabelLen = 0;
+	int nTemp = 0;
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		inStream >> _gridLabels[i];
+	}
+	caFile.close();
+	// find the top 20 clusters from the 1000
+	int arrCount[1000];
+	for (int i = 0; i < 1000;i++)
+	{
+		arrCount[i] = 0;
+	}
+
+	for (int i = 0; i < g_focus_l; i++)
+	{
+		arrCount[_gridLabels[i]]++;
+	}
+	QList<int> listTop20;
+	for (int i = 0; i < 20;i++)
+	{
+		int nMax = 0;
+		int nIndex;
+		for (int j = 0; j < 1000; j++)
+		{
+			if (arrCount[j]>nMax){
+				nMax = arrCount[j];
+				nIndex = j;
+			}
+		}
+		qDebug() << nIndex << "\t" << nMax;
+		listTop20.push_back(nIndex);
+		arrCount[nIndex] = 0;
+	}
+// 	for each (int n in listTop20)
+// 	{
+// 		qDebug() << n;
+// 	}
+	// refine the labels
+	// bias between the label and its real label
+// 	int nBias = 0;
+// 	for (int i = 0; i < g_focus_l;i++)
+// 	{
+// 		// if i is a valid label
+// 		bool bValidLabel = false;
+// 		for (int j = 0; j < g_focus_l; j++)
+// 		{
+// 			if (_gridLabels[j] == i){
+// 				_gridLabels[j] -= nBias;
+// 				bValidLabel = true;
+// 			}
+// 		}
+// 		if (!bValidLabel) nBias++;
+// 	}
+// 	for (int i = 0; i < g_focus_l;i++)
+// 	{
+// 		_gridLabelsF[i] = _gridLabels[i];
+// 	}
+
+	{
+		// print them
+		QFile caFile("LabelRefine.txt");
+		caFile.open(QIODevice::WriteOnly | QIODevice::Text);
+
+		if (!caFile.isOpen()){
+			qDebug() << "- Error, unable to open" << "outputFilename" << "for output";
+		}
+		QTextStream outStream(&caFile);
+
+		QList<int> list;
+		for (int i = 0; i < g_focus_l; i++)
+		{
+			list.push_back(_gridLabels[i]);
+		}
+		qSort(list);
+		for each (int n in list)
+		{
+			outStream << n << endl;
+		}
+
+		caFile.close();
+	}
+}
