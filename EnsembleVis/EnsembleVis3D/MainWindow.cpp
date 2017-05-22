@@ -102,9 +102,6 @@ MainWindow::~MainWindow(){
 
 MainWindow::MainWindow()
 {
-	_bClustering = false;
-	_nClusters = 20;
-// 	_bClustering = true;
 	resize(QSize(800, 600));
 	_gridDataMinB = new double[g_focus_l * g_lenEnsembles];
 	_gridDataMeanB = new double[g_focus_l * g_lenEnsembles];
@@ -953,129 +950,6 @@ void MainWindow::buildDistanceMatrix_vb(double** disMatrix){
 // 			disMatrix[i][j] = sqrt(biasLon*biasLon + biasLat*biasLat);
 			disMatrix[i][j] = sqrt(fBias1*fBias1 + fBias2*fBias2);
 		}
-	}
-}
-
-void MainWindow::doCluster(){
-	// 0.initialize the distance matrix
-	double** disMatrix = new double*[g_focus_l];
-// 	buildDistanceMatrix_ensemble(disMatrix);
-	buildDistanceMatrix_vb(disMatrix);
-
-	// 2.clustering
-	for (int i = 0; i < g_focus_l; i++)
-	{
-		_gridLabels[i] = i;
-	}
-	// start from every grid point as a cluster
-	int nClusters = g_focus_l;
-	// state of each grid point
-	int arrState[g_focus_l];
-	for (int i = 0; i<g_focus_l; i++) arrState[i] = 1;	// 0 means this grid has been merged to other cluster
-	while (nClusters >_nClusters)
-	{
-		// 2.1.Find the nearest points pair nI,nJ
-		int nI, nJ;
-		double fMinDis = 10000.0;
-		for (int i = 0; i < g_focus_l; i++)
-		{
-			if (arrState[i] == 0) continue;
-			// 			int latI = i / g_focus_w;			// latitude of index i
-			// 			int lonI = i%g_focus_w;
-
-			for (int j = 0; j < i; j++)
-			{
-				if (arrState[j] == 0) continue;
-				// 				int latJ = j / g_focus_w;			// latitude of index j
-				// 				int lonJ = j%g_focus_w;
-				// 				double fBiasLat = latJ - latI;
-				// 				double fBiasLon = lonJ - lonI;
-				if (_gridLabels[i] == _gridLabels[j]) continue;
-				if (disMatrix[i][j]/*+sqrt(fBiasLat*fBiasLat+fBiasLon*fBiasLon)*/ < fMinDis)
-				{
-					nI = i;
-					nJ = j;
-					fMinDis = disMatrix[i][j];
-				}
-			}
-		}
-
-		int nSourceLabel = _gridLabels[nI];
-		int nTargetLabel = _gridLabels[nJ];
-
-		// 		int latI = nI / g_focus_w;			
-		// 		int lonI = nI % g_focus_w;
-		// 		int latJ = nJ / g_focus_w;			
-		// 		int lonJ = nJ % g_focus_w;
-		// 2.2.search all the point with source label, reset distance and state
-		for (int i = 0; i < g_focus_l; i++)
-		{
-			if (_gridLabels[i] == nSourceLabel)
-			{
-				// 2.2.1.reset the label
-				_gridLabels[i] = nTargetLabel;
-				if (arrState[i] == 1)
-				{
-					// 2.2.2.reset distance
-					for (int j = 0; j < g_focus_l; j++)
-					{
-						if (j == i || j == nJ) continue;
-						// as we merge i to nJ
-						// for each j, if dis(i,j)>dis(nJ,j), we use dis(i,j) to replace dis(nJ,j)
-						double fDisIJ;
-						if (i < j) fDisIJ = disMatrix[j][i];
-						else fDisIJ = disMatrix[i][j];
-						if (j < nJ){
-							disMatrix[nJ][j] = qMax(disMatrix[nJ][j], fDisIJ);
-						}
-						else{
-							disMatrix[j][nJ] = qMax(disMatrix[j][nJ], fDisIJ);
-
-						}
-					}
-					arrState[i] = 0;
-				}
-			}
-		}
-		nClusters--;
-	}
-
-
-	// 3.release the resource
-	for (int i = 0; i < g_focus_l; i++)
-	{
-		delete[]disMatrix[i];
-	}
-	delete[]disMatrix;
-	int nBias = 0;
-	for (int i = 0; i < g_focus_l; i++)
-	{
-		// if i is a valid label
-		bool bValidLabel = false;
-		for (int j = 0; j < g_focus_l; j++)
-		{
-			if (_gridLabels[j] == i){
-				_gridLabels[j] -= nBias;
-				bValidLabel = true;
-			}
-		}
-		if (!bValidLabel) nBias++;
-	}
-	// 4.save the labels
-	{
-		// print them
-		QFile caFile("Label.txt");
-		caFile.open(QIODevice::WriteOnly | QIODevice::Text);
-
-		if (!caFile.isOpen()){
-			qDebug() << "- Error, unable to open" << "outputFilename" << "for output";
-		}
-		QTextStream outStream(&caFile);
-		for (int i = 0; i < g_focus_l; i++)
-		{
-			outStream << _gridLabels[i] << endl;
-		}
-		caFile.close();
 	}
 }
 

@@ -62,8 +62,6 @@ private:
 	void doStatistic3B();
 
 
-	// do cluster using hierarchical clustering
-	void doCluster();
 	// directly segment, no clustering
 	void doSegment();
 	// build the distance matrix for clustering using ensemble variance
@@ -124,10 +122,6 @@ private:
 	// label of clustering
 	int* _gridLabels;
 	double* _gridLabelsF;
-	// whether do cluster
-	bool _bClustering;
-	// number of clusters
-	int _nClusters;
 
 	// mean Bayesian vars of according to latitude
 	double* _arrLatVarB;

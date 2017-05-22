@@ -10,6 +10,7 @@
 #include "ColorMap.h"
 
 #include "AHCClustering.h"
+#include "KMeansClustering.h"
 #include "MyPCA.h"
 #include "DataField.h"
 
@@ -152,7 +153,7 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 	, QString strFile, bool bBinary, int nWest, int nEast, int nSouth, int nNorth
 	, int nFocusWest, int nFocusEast, int nFocusSouth, int nFocusNorth,bool bFilter) {
 	// 0.record states variables
-	_nClusters = 3;
+	_nClusters = g_nClusters;
 
 	_nEnsembleLen = nEnsembleLen;
 	_nWidth = nWidth;
@@ -267,7 +268,7 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 }
 
 void MeteModel::readDataFromText() {
-	int nTimeStep = 4;
+	int nTimeStep = 6;
 
 	QFile file(_strFile);
 
@@ -308,15 +309,15 @@ void MeteModel::doPCA() {
 	// 1.pca
 	MyPCA pca;
 	double* arrData = new double[_nEnsembleLen*nPCALen];
-	pca.DoPCA(_pSDF->GetData(), arrData, _nEnsembleLen, _nLen, true);
-//	pca.DoPCA(_pSDF->GetData(), arrData, _nEnsembleLen, _nLen);
+	pca.DoPCA(_pSDF->GetData(), arrData, _nEnsembleLen, _nLen, g_bNewData);
 
 	// try to recover the data, used to test DoPCA and Recover
 //	pca.Recover(arrData, _gridSDF, _nEnsembleLen);
 //	pca.Recover(arrData, _gridSDF, 1);
 
 	// 2.clustering
-	AHCClustering clustering;
+//	AHCClustering clustering;
+	KMeansClustering clustering;
 	clustering.DoCluster(_nEnsembleLen, nPCALen, _nClusters, arrData, _arrLabels);
 
 	// 3.counting length of each cluster
