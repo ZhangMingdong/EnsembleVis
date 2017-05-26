@@ -257,7 +257,7 @@ void EnsembleLayer::draw(DisplayStates states){
 			}
 		}
 		else {
-			glColor4f(.5, .5, 0.0, 1.0);
+			glColor4f(1, 1, 0.0, 1.0);
 			drawContourLine(_pModel->GetContourMin());
 		}
 	}
@@ -378,25 +378,15 @@ void EnsembleLayer::draw(DisplayStates states){
 				}
 
 			}
-			/*
-			glColor4f(g_arrColors[0][0], g_arrColors[0][1], g_arrColors[0][2], fTransparency);
-			glCallList(_gllist + 3);
-			glCallList(_gllist + 6);
-			glCallList(_gllist + 9);
-
-			glColor4f(g_arrColors[1][0], g_arrColors[1][1], g_arrColors[1][2], fTransparency);
-			glCallList(_gllist + 4);
-			glCallList(_gllist + 7);
-			glCallList(_gllist + 10);
-		
-			glColor4f(g_arrColors[2][0], g_arrColors[2][1], g_arrColors[2][2], fTransparency);
-			glCallList(_gllist + 5);
-			glCallList(_gllist + 8);
-			glCallList(_gllist + 11);
-			*/
-
 		}
 		else {
+			// render each area
+			if (g_bShowUncertaintyOnly) {
+
+				glColor4f(1, 1, 1, .5);
+				glCallList(_gllist + 1);
+			}
+			else
 			for (size_t j = 0; j < 3; j++)
 			{
 				glColor4f(g_arrColors[j][0], g_arrColors[j][1], g_arrColors[j][2], fTransparency);
@@ -409,13 +399,14 @@ void EnsembleLayer::draw(DisplayStates states){
 
 }
 
-void EnsembleLayer::init(){
+void EnsembleLayer::ReloadTexture() {
 	// Enable texturing
 	// 	generateBackground();
 	// 	glEnable(GL_TEXTURE_2D);
-// 	_dataTexture = _pModel->generateTextureMean();
-//	_dataTexture = _pModel->generateTextureRange(0);
-	_dataTexture = _pModel->generateTextureSDF();
+//	_dataTexture = _pModel->generateTextureMean();
+	_dataTexture = _pModel->generateTextureGridCluster();
+	//	_dataTexture = _pModel->generateTextureRange(0);
+	//	_dataTexture = _pModel->generateTextureSDF();
 	glGenTextures(1, &texID[0]);
 	glBindTexture(GL_TEXTURE_2D, texID[0]);
 	// 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -427,6 +418,9 @@ void EnsembleLayer::init(){
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _pModel->GetFocusW(), _pModel->GetFocusH(), 0, GL_RGBA, GL_UNSIGNED_BYTE, _dataTexture);
 
+}
+void EnsembleLayer::init(){
+	ReloadTexture();
 	// color bar
 	ColorMap* colormap=ColorMap::GetInstance();
 	int nLen = colormap->GetLength();

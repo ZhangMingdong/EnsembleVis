@@ -36,7 +36,9 @@ private:
 	GLUtesselator *_tobj;                    /**< 网格化对象指针 */
 
 // 	GLFont font;                /**< 定义一个字体实例 */
-
+public:
+	// reload texture
+	virtual void ReloadTexture();
 
 };
 
