@@ -21,6 +21,8 @@
 
 #include "def.h"
 
+#include "DBSCANClustering.h"
+
 using namespace std;
 
 
@@ -57,16 +59,11 @@ double PointToSegDist(double x, double y, double x1, double y1, double x2, doubl
 }
 
 MeteModel::MeteModel() :_pData(0)
-,_pSDF(0)
+, _pSDF(0)
 , _arrLabels(0)
-/*
-, _gridSDF(0)
-, _gridVar(0)
-, _gridMean(0)
-, _gridUnionMax(0)
-, _gridUnionMin(0)
-*/
+, _arrGridLabels(0)
 , _pClusterCenter(0)
+, _bgFunction(bg_mean)
 {
 }
 
@@ -143,6 +140,10 @@ MeteModel::~MeteModel()
 	{
 		delete[] _arrLabels;
 	}
+	if (_arrGridLabels)
+	{
+		delete[] _arrGridLabels;
+	}
 	if (_pClusterCenter)
 	{
 		delete[] _pClusterCenter;
@@ -186,6 +187,7 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 	_pSDF = new DataField(_nWidth, _nHeight, _nEnsembleLen);// new double[_nLen*_nEnsembleLen];
 //	_gridSDF = new double[_nFocusLen*_nEnsembleLen];
 	_arrLabels = new int[_nEnsembleLen];
+	_arrGridLabels = new int[_nLen];
 
 	// 3.read data
 	if (_bBinaryFile)
@@ -198,6 +200,11 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 
 	// 4.statistic
 	_pData->DoStatistic();
+
+	
+	// DBSCAN
+	doSpatialClustering();
+//	useSpatialClustering();
 
 	// 5.generate features
 	ContourGenerator generator;
@@ -268,7 +275,7 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 }
 
 void MeteModel::readDataFromText() {
-	int nTimeStep = 6;
+	int nTimeStep = g_nTimeStep;
 
 	QFile file(_strFile);
 
@@ -440,6 +447,7 @@ GLubyte* MeteModel::generateTexture() {
 }
 
 GLubyte* MeteModel::generateTextureMean() {
+	const double* pData = _bgFunction==bg_mean? _pData->GetMean(): _pData->GetVari();
 	// old version, whole area
 	if (false)
 	{
@@ -450,7 +458,7 @@ GLubyte* MeteModel::generateTextureMean() {
 
 		for (int i = 0; i < _nLen; i++)
 		{
-			MYGLColor color = colormap->GetColor(_pData->GetMean()[i]);
+			MYGLColor color = colormap->GetColor(pData[i]);
 			// using transparency and the blue tunnel
 			dataTexture[4 * i + 0] = color._rgb[0];
 			dataTexture[4 * i + 1] = color._rgb[1];
@@ -472,7 +480,7 @@ GLubyte* MeteModel::generateTextureMean() {
 
 				int nIndex = i*_nWidth + j;
 				int nIndexFocus = (i - _nFocusY)*_nFocusW + j - _nFocusX;
-				MYGLColor color = colormap->GetColor(_pData->GetMean()[nIndex]);
+				MYGLColor color = colormap->GetColor(pData[nIndex]);
 				// using transparency and the blue tunnel
 				dataTexture[4 * nIndexFocus + 0] = color._rgb[0];
 				dataTexture[4 * nIndexFocus + 1] = color._rgb[1];
@@ -483,6 +491,112 @@ GLubyte* MeteModel::generateTextureMean() {
 		}
 		return dataTexture;
 	}
+}
+
+GLubyte* MeteModel::generateTextureGridCluster() {
+	GLubyte* dataTexture = new GLubyte[4 * _nFocusLen];
+
+	GLubyte colors[40][3] = {
+		{ 31	,119	,180 },
+		{ 174	,199	,232 },
+		{ 255	,127	,14 },
+		{ 255	,187	,120 },
+		{ 44	,160	,44 },
+		{ 152	,223	,138 },
+		{ 214	,39		,40 },
+		{ 255	,152	,150 },
+		{ 148	,103	,189 },
+		{ 197	,176	,213 },
+		{ 140	,86		,75 },
+		{ 196	,156	,148 },
+		{ 227	,119	,194 },
+		{ 247	,182	,210 },
+		{ 127	,127	,127 },
+		{ 188	,189	,34 },
+		{ 219	,219	,141 },
+		{ 23	,190	,207 },
+		{ 158	,218	,229 },
+		{ 57	,59		,121 },
+		{ 82	,84		,163 },
+		{ 107	,110	,207 },
+		{156	,158	,222 },
+		{99		,121	,57	 },
+		{140	,162	,82	 },
+		{181	,207	,107 },
+		{206	,219	,156 },
+		{140	,109	,49	 },
+		{189	,158	,57	 },
+		{231	,186	,82	 },
+		{231	,203	,148 },
+		{132	,60		,57	 },
+		{173	,73		,74	 },
+		{214	,97		,107 },
+		{231	,150	,156 },
+		{123	,65		,115 },
+		{165	,81		,148 },
+		{206	,109	,189 },
+		{222	,158	,214 }
+	};
+
+	double fMin = 100000;
+	double fMax = -100000;
+
+	for (int i = 0; i < _nLen; i++)
+	{
+		double f = _arrGridLabels[i];
+		if (f > fMax) fMax = f;
+		if (f < fMin) fMin = f;
+	}
+	double fRange = fMax - fMin;
+
+	for (int i = _nFocusY, iLen = _nFocusY + _nFocusH; i < iLen; i++) {
+		for (int j = _nFocusX, jLen = _nFocusX + _nFocusW; j < jLen; j++) {
+
+			int nIndex = i*_nWidth + j;
+			int nIndexFocus = (i - _nFocusY)*_nFocusW + j - _nFocusX;
+
+			GLbyte color[3];
+			switch (_arrGridLabels[nIndex])
+			{
+			case -3:
+				color[0] = 255;
+				color[1] = 255;
+				color[2] = 255;
+				break;
+			case -2:
+				color[0] = 220;
+				color[1] = 220;
+				color[2] = 220;
+				break;
+			case -1:
+				color[0] = 200;
+				color[1] = 200;
+				color[2] = 200;
+				break;
+			default:
+				if (_arrGridLabels[nIndex]<40)
+				{
+					color[0] = colors[_arrGridLabels[nIndex]][0];
+					color[1] = colors[_arrGridLabels[nIndex]][1];
+					color[2] = colors[_arrGridLabels[nIndex]][2];
+				}
+				else {
+					color[0] = 0;
+					color[1] = 0;
+					color[2] = 0;
+
+				}
+				break;
+			}
+			// using transparency and the blue tunnel
+			dataTexture[4 * nIndexFocus + 0] = (GLubyte)color[0];
+			dataTexture[4 * nIndexFocus + 1] = (GLubyte)color[1];
+			dataTexture[4 * nIndexFocus + 2] = (GLubyte)color[2];
+			dataTexture[4 * nIndexFocus + 3] = (GLubyte)255;
+		}
+	}
+
+	return dataTexture;
 }
 
 GLubyte* MeteModel::generateTextureRange() {
@@ -620,6 +734,91 @@ void MeteModel::readData() {
 			}
 			// 只取整度，过滤0.5度
 			if (_bFilter&&i < _nHeight - 1) f += (_nWidth * 2 - 1);
+		}
+	}
+}
+
+void MeteModel::doSpatialClustering() {
+	// dbscan
+	int* arrState = new int[_nLen];
+	for (size_t i = 0; i < _nLen; i++)
+	{
+		arrState[i] = _pData->GetMean()[i]>g_fThreshold ? 1 : 0;
+	}
+	DBSCANClustering dbscan;
+	dbscan.DoCluster(_nFocusH, _nFocusW, g_nMinPts, g_dbEps, arrState, _arrGridLabels);
+	int nClusters = 0;
+	for (size_t i = 0; i < _nLen; i++)
+	{
+		if (_arrGridLabels[i] > nClusters) nClusters = _arrGridLabels[i];
+	}
+	bool bRaw = false;	// weather using raw data or belief eclipse
+
+	_points.clear();
+	if (bRaw) {
+		for (size_t i = 0; i < _nHeight; i++)
+		{
+			for (size_t j = 0; j < _nWidth; j++)
+			{
+				if (_arrGridLabels[i*_nWidth + j] == 1) {
+
+					_points.push_back(Point(DPoint3(j, i, 0)));
+				}
+			}
+		}
+	}
+	else {
+		for (size_t i = 0; i < nClusters; i++)
+		{
+			MyPCA::generateEllipse(_points, _arrGridLabels, i, _nWidth, _nHeight);
+		}
+	}
+	delete[] arrState;
+}
+
+
+
+void MeteModel::useSpatialClustering() {
+	// dbscan
+	for (size_t i = 0; i < _nLen; i++)
+	{
+		_arrGridLabels[i] = -3;
+	}
+	int x;
+	int y;
+	int label;
+	ifstream input("spatial_clustering.txt");
+	while (input.good())
+	{
+		input >> x >> y >> label;
+		_arrGridLabels[y*_nWidth + x] = label;
+	}
+	input.close();
+
+
+	int nClusters = 0;
+	for (size_t i = 0; i < _nLen; i++)
+	{
+		if (_arrGridLabels[i] > nClusters) nClusters = _arrGridLabels[i];
+	}
+	bool bRaw = false;	// weather using raw data or belief eclipse
+	_points.clear();
+	if (bRaw) {
+		for (size_t i = 0; i < _nHeight; i++)
+		{
+			for (size_t j = 0; j < _nWidth; j++)
+			{
+				if (_arrGridLabels[i*_nWidth + j] == 1) {
+
+					_points.push_back(Point(DPoint3(j, i, 0)));
+				}
+			}
+		}
+	}
+	else {
+		for (size_t i = 0; i < nClusters; i++)
+		{
+			MyPCA::generateEllipse(_points, _arrGridLabels, i, _nWidth, _nHeight);
 		}
 	}
 }

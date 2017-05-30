@@ -7,17 +7,15 @@ MeteLayer::MeteLayer() :_bShow(true), _pModel(NULL)
 {
 }
 
-
 MeteLayer::~MeteLayer()
 {
 }
-
-
 
 void MeteLayer::DrawLayer(DisplayStates states){
 	if (_bShow)
 		this->draw(states);
 }
+
 void MeteLayer::InitLayer(double fLeft, double fRight, double fTop, double fBottom, double fScaleW, double fScaleH){
 	_fLeft = fLeft;
 	_fRight = fRight;

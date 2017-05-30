@@ -169,6 +169,10 @@ public:
 	void SetMultiStatistic(QList<ContourLine>* listContourMin, QList<ContourLine>* listContourMax);
 
 	void SetIntersections(const EnsembleIntersections* arrIntersections){ _arrIntersections = arrIntersections; }
+
+
+	// reload texture
+	void ReloadTexture();
 private:// state
 	MeteLayer::DisplayStates _displayStates;
 

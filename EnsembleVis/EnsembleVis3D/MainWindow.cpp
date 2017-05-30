@@ -9,8 +9,9 @@
 #include <QMenuBar>
 #include <QSet>
 #include <QMessageBox>
+#include <QDockWidget>
 
-#include "annotation.h"
+
 
 
 #include "MainWindow.h"
@@ -136,8 +137,8 @@ MainWindow::MainWindow()
 	_dataT = new double[g_focus_l];
 
 
-	int nWidth = 360;
-	int nHeight = 181;
+	int nWidth = g_globalW;
+	int nHeight = g_globalH;
 
 	int nFocusX = 0;
 	int nFocusY = 0;
@@ -206,27 +207,14 @@ MainWindow::MainWindow()
 
 
 	
-	_pModelCMA = new MeteModel();
-// 	_pModelCMA->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cma-20160802-00-96.txt");
-
+	_pModelCMA = new MeteModel(); 	
 	_pModelCPTEC = new MeteModel();
-// 	_pModelCPTEC->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cptec-20160802-00-96.txt");
-
 	_pModelECCC = new MeteModel();
-// 	_pModelECCC->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-eccc-20160802-00-96.txt");
-
 	_pModelECMWF = new MeteModel();
-// 	_pModelECMWF->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt");
-
 	_pModelJMA = new MeteModel();
-// 	_pModelJMA->InitModel(26, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-jma-20160802-00-96.txt");
-
-
 	_pModelKMA = new MeteModel();
-// 	_pModelKMA->InitModel(24, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-kma-20160802-00-96.txt");
-
 	_pModelNCEP = new MeteModel();
-// 	_pModelNCEP->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ncep-20160802-00-96.txt");
+	_pModelECMWFTemperature = new MeteModel();// MeteModel();
 
 //	_pModelECMWFTemperatureT = new MeteModel();// MeteModel();
 //	_pModelECMWFTemperatureT->InitModel(1, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data5.dat", true
@@ -234,21 +222,44 @@ MainWindow::MainWindow()
 //		, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, bFilter);
 
 
-	bool bNewData = true;
-	_pModelECMWFTemperature = new MeteModel();// MeteModel();
-	if (bNewData) {
-		_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
-			, "../../data/t2-mod-ecmwf-20160105-00-72-216.txt", false
-			, nWest, nEast, nSouth, nNorth
-			, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
-	}
-	else {
+	bool bNewData = false;
 
-		_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data6.dat", true
-			, nWest, nEast, nSouth, nNorth
-			, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
-	}
 
+	switch (g_usedModel)
+	{
+	case PRE_CMA:
+		_pModel = _pModelCMA;
+		_pModelCMA->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cma-20160802-00-96.txt"); break;
+	case PRE_CPTEC:
+		_pModel = _pModelCPTEC; _pModelCPTEC->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cptec-20160802-00-96.txt"); break;
+	case PRE_ECCC:
+		_pModel = _pModelECCC; _pModelECCC->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-eccc-20160802-00-96.txt"); break;
+	case PRE_ECMWF:
+		_pModel = _pModelECMWF; _pModelECMWF->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt"); break;
+	case PRE_JMA:
+		_pModel = _pModelJMA; _pModelJMA->InitModel(26, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-jma-20160802-00-96.txt"); break;
+	case PRE_KMA:
+		_pModel = _pModelKMA; _pModelKMA->InitModel(24, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-kma-20160802-00-96.txt"); break;
+	case PRE_NCEP:
+		_pModel = _pModelNCEP; _pModelNCEP->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ncep-20160802-00-96.txt"); break;
+	case T2_ECMWF:
+		_pModel = _pModelECMWFTemperature;
+		if (bNewData) {
+			_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
+				, "../../data/t2-mod-ecmwf-20160105-00-72-216.txt", false
+				, nWest, nEast, nSouth, nNorth
+				, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
+		}
+		else {
+
+			_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data6.dat", true
+				, nWest, nEast, nSouth, nNorth
+				, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
+		}
+		break;
+	defaut:
+		break;
+	}
 
 	_arrIntersections = new EnsembleIntersections[g_focus_l];
 
@@ -290,6 +301,8 @@ MainWindow::MainWindow()
 
 	createSceneAndView();
 	createActions();
+
+	createDockWidgets();
 	createConnections();
 	populateMenusAndToolBars();
 
@@ -311,29 +324,10 @@ MainWindow::MainWindow()
 
 
 
-// 	_table = new TableWidget(_dataProb_1);
-// 
-// 
-// 	QGridLayout *mainLayout = new QGridLayout;
-// 	mainLayout->addWidget(_view, 0, 1);
-// 	mainLayout->addWidget(_table, 1, 1);
-// 	mainLayout->setColumnStretch(1, 1);
-// 	mainLayout->setColumnStretch(0, 0);
-// 	setLayout(mainLayout);
-
     setWindowTitle(tr("Ensembles"));
 }
 
 void MainWindow::createSceneAndView(){
-	_scene = new QGraphicsScene(0, 0, g_width, g_height);
-	_scene->setBackgroundBrush(QColor(255, 255, 238));
-
-
-	// 	_view = new MainView;
-	// 	_view->setScene(_scene);
-	// 	connect(_view, SIGNAL(mousePressed(int, int)), SLOT(onMousePressed(int,int)));
-	//     setCentralWidget(_view);
-
 	_view3D = new MyGLWidget;
 	_view3D->SetDataT(_dataT);
 // 	_view3D->SetDataT(_gridDataMeanMeanB);
@@ -345,14 +339,27 @@ void MainWindow::createSceneAndView(){
 	_view3D->SetLabels(_gridLabels);
 
 	_view3D->SetDataB(_dataB);
-// 	_view3D->SetModelE(_pModelCMA);
-// 	_view3D->SetModelE(_pModelCPTEC);
-// 	_view3D->SetModelE(_pModelECCC);
-// 	_view3D->SetModelE(_pModelECMWF);
-// 	_view3D->SetModelE(_pModelJMA);
-// 	_view3D->SetModelE(_pModelKMA);
-// 	_view3D->SetModelE(_pModelNCEP);
-	_view3D->SetModelE(_pModelECMWFTemperature);
+	switch (g_usedModel)
+	{
+	case PRE_CMA:_view3D->SetModelE(_pModelCMA); break;
+	case PRE_CPTEC:_view3D->SetModelE(_pModelCPTEC); break;
+	case PRE_ECCC:_view3D->SetModelE(_pModelECCC); break;
+	case PRE_ECMWF:_view3D->SetModelE(_pModelECMWF); break;
+	case PRE_JMA:_view3D->SetModelE(_pModelJMA); break;
+	case PRE_KMA:_view3D->SetModelE(_pModelKMA); break;
+	case PRE_NCEP:_view3D->SetModelE(_pModelNCEP); break;
+	case T2_ECMWF:_view3D->SetModelE(_pModelECMWFTemperature); break;
+	defaut:
+		break;
+	}
+// 	_view3D->SetModelE(_pModelCMA				);
+// 	_view3D->SetModelE(_pModelCPTEC				);
+// 	_view3D->SetModelE(_pModelECCC				);
+// 	_view3D->SetModelE(_pModelECMWF				);
+// 	_view3D->SetModelE(_pModelJMA				);
+// 	_view3D->SetModelE(_pModelKMA				);
+// 	_view3D->SetModelE(_pModelNCEP				);
+//	_view3D->SetModelE(_pModelECMWFTemperature	);
 //	_view3D->SetModelT(_pModelECMWFTemperatureT);
 
 	// 	_view3D->SetData(_gridDataVarB);
@@ -371,7 +378,27 @@ void MainWindow::createSceneAndView(){
 // 	_view3D->SetContour(_listContourE2);
 	_view3D->SetMultiStatistic(_listContourEnsembleMin_3, _listContourEnsembleMax_3);
 	_view3D->SetIntersections(_arrIntersections);
+
+
 	setCentralWidget(_view3D);
+}
+
+
+void MainWindow::createDockWidgets() {
+	setDockOptions(QMainWindow::AnimatedDocks);
+	QDockWidget::DockWidgetFeatures features =
+		QDockWidget::DockWidgetMovable |
+		QDockWidget::DockWidgetFloatable;
+
+	_pControlWidget = new ControlWidget();
+
+
+	QDockWidget *controlDockWidget = new QDockWidget(
+		tr("Control"), this);
+	controlDockWidget->setFeatures(features);
+	controlDockWidget->setWidget(_pControlWidget);
+	addDockWidget(Qt::RightDockWidgetArea, controlDockWidget);
+
 }
 
 void MainWindow::populateMenusAndToolBars()
@@ -557,6 +584,10 @@ void MainWindow::createConnections(){
 	connect(viewShowContourLineMeanAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineMean(bool)));
 	connect(viewShowClusterBSAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowClusterBS(bool)));
 	connect(viewShowClusterBVAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowClusterBV(bool)));
+
+
+	connect(_pControlWidget->ui.radioButtonBackgroundMean, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundMean(bool)));
+	connect(_pControlWidget->ui.radioButtonBackgroundVari, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundVari(bool)));
 
 
 }
@@ -844,10 +875,6 @@ void MainWindow::doStatistic3B(){
 }
 
 void MainWindow::onMousePressed(int x, int y){
-	int i = x*g_grid_width*1.0 / g_width;
-	int j = y*g_grid_height*1.0 / g_height;
-	int nIndex = i*g_grid_width + j;
-	_table->SetIndex(nIndex);
 }
    
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -1057,4 +1084,15 @@ void MainWindow::readLabels(){
 
 		caFile.close();
 	}
+}
+
+
+void MainWindow::onSelectBackgroundMean(bool bChecked) {
+	_pModel->SetBgFunctionMean(MeteModel::bg_mean);
+	_view3D->ReloadTexture();
+}
+void MainWindow::onSelectBackgroundVari(bool bChecked) {
+	_pModel->SetBgFunctionMean(MeteModel::bg_vari);
+	_view3D->ReloadTexture();
+
 }

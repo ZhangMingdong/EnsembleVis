@@ -41,6 +41,8 @@ public:
 	void SetModel(MeteModel* pModel){ _pModel = pModel; };
 	// show or hide
 	void Show(bool bShow){ _bShow = bShow; }
+	// reload texture
+	virtual void ReloadTexture() {};
 private:
 	// implementation for render
 	virtual void draw(DisplayStates states) = 0;

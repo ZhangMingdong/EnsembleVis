@@ -8,6 +8,8 @@
 #include "ContourGenerator.h"
 #include "def.h"
 
+#include "ControlWidget.h"
+
 class QGraphicsScene;
 class MainView;
 class TableWidget;
@@ -25,11 +27,9 @@ public:
 	~MainWindow();
 
 private:
-    QGraphicsScene *_scene;
-	MainView *_view;
 	MyGLWidget *_view3D;
 	// table
-	TableWidget *_table;
+	ControlWidget *_pControlWidget;
 
 	// view
 	QAction *viewShowGridLinesAction;			
@@ -49,6 +49,7 @@ private:
 	void createSceneAndView();
 	void createActions();
 	void createConnections();
+	void createDockWidgets();
 	void populateMenuAndToolBar(QMenu *menu, QToolBar *toolBar, QList<QAction*> actions);
 	void populateMenusAndToolBars();
 	// data reading..............
@@ -159,11 +160,16 @@ private:
 	MeteModel* _pModelECMWFTemperature;
 //	MeteModel* _pModelECMWFTemperatureT;
 
+	// used model
+	MeteModel* _pModel;
 	
 
 
 public slots:
 	void onMousePressed(int x, int y);
+
+	void onSelectBackgroundMean(bool bChecked);
+	void onSelectBackgroundVari(bool bChecked);
 protected:
 	virtual void closeEvent(QCloseEvent *event);
 };

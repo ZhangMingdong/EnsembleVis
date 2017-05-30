@@ -556,3 +556,68 @@ void MyPCA::writeMatrices() {
 	output_binary.write((char*)buf, nLen*sizeof(double));
 	delete[] buf;
 }
+
+
+void MyPCA::generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight) {
+	// calculate the confidence eclipse
+
+	int row = 0;
+	int col = 2;
+	double xMean = 0;
+	double yMean = 0;
+	for (size_t i = 0; i < nHeight; i++)
+	{
+		for (size_t j = 0; j < nWidth; j++)
+		{
+			if (arrGridLabel[i*nWidth + j] == label) {
+				xMean += j;
+				yMean += i;
+				row++;
+			}
+		}
+	}
+	xMean /= row;
+	yMean /= row;
+
+	Array2D<double> d(row, col);
+	int nRowIndex = 0;
+	for (size_t i = 0; i < nHeight; i++)
+	{
+		for (size_t j = 0; j < nWidth; j++)
+		{
+			if (arrGridLabel[i*nWidth + j]==label) {
+				d[nRowIndex][0] = j - xMean;
+				d[nRowIndex][1] = i - yMean;
+				nRowIndex++;
+			}
+		}
+	}
+	// 2.compute covariance matrix
+	Array2D<double> covar_matrix(col, col);
+	compute_covariance_matrix(d, covar_matrix);
+	Array2D<double> covar_matrix_r(col, col);
+
+	// 3.compute the reverse matrix of covariance
+	GetMatrixInverse(covar_matrix, col, covar_matrix_r);
+
+	// 4.generate result points
+	Array2D<double> m0(1, 2);
+	Array2D<double> m1(2, 1);
+	Array2D<double> m(1, 2);
+	Array2D<double> mr(1, 1);
+	for (double i = 0; i < nHeight; i++)
+	{
+		for (double j = 0; j < nWidth; j++)
+		{
+			m0[0][0] = m1[0][0] = j - xMean;
+			m0[0][1] = m1[1][0] = i - yMean;
+			multiply(m0, covar_matrix_r, m);
+			multiply(m, m1, mr);
+			double alpha = sqrt(mr[0][0]);
+			if (alpha<2)
+			{
+				points.push_back(DPoint3(j, i, 0));
+			}
+		}
+	}
+}

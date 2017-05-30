@@ -7,8 +7,10 @@
 #include <QGLWidget>
 #include "ContourGenerator.h"
 #include "ContourStripGenerator.h"
+#include "BasicDataStructure.h"
 
 class DataField;
+
 
 class MeteModel
 {
@@ -25,6 +27,7 @@ public:
 	virtual GLubyte* generateTexture();
 	virtual GLubyte* generateTextureMean();
 	virtual GLubyte* generateTextureRange();
+	virtual GLubyte* generateTextureGridCluster();
 	// range of which index
 	virtual GLubyte* generateTextureRange(int nIndex);
 	virtual GLubyte* generateTextureSDF();
@@ -107,6 +110,8 @@ protected:
 	QList<int> _listClusterLen;
 	// array of labels
 	int* _arrLabels;
+	// labels of each grid point
+	int* _arrGridLabels;
 	// number of clusters
 	int _nClusters;
 
@@ -149,6 +154,25 @@ private:
 
 	// read data from binary file
 	void readData();
+public:
+	enum enumBackgroundFunction
+	{
+		bg_mean,
+		bg_vari
+	};
+protected:
+	// using which background function
+	enumBackgroundFunction _bgFunction;
+public:
+	void SetBgFunctionMean(enumBackgroundFunction f) { _bgFunction = f; }
+private:
+	void doSpatialClustering();
+	void useSpatialClustering();
+private:
+	// Point list
+	std::vector<Point> _points;
+public:
+	const std::vector<Point> GetPoints() { return _points; }
 
 };
 

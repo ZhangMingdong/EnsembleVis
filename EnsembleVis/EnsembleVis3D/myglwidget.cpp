@@ -258,21 +258,38 @@ void MyGLWidget::paintGL(){
 
 	// grid lines
 	if (_bShowGridLines){
-
-		glColor4f(.5, .5, .5, .3);
+		
+		glColor4f(.5, .5, .5, .5);
 		glBegin(GL_LINES);
 		int nStep = 10;
-		for (int i = 0; i < g_focus_w; i += nStep)
+		for (int i = 0; i < g_globalW; i += nStep)
 		{
 			glVertex2f(_fLeft + i*_fScaleW, _fBottom);
 			glVertex2f(_fLeft + i*_fScaleW, _fTop);
 		}
-		for (int j = 0; j < g_focus_h; j += nStep)
+		for (int j = 0; j < g_globalH; j += nStep)
 		{
 			glVertex2f(_fLeft, _fBottom + j*_fScaleH);
 			glVertex2f(_fRight, _fBottom + j*_fScaleH);
 		}
 		glEnd();
+		// show detail
+		if (false) {	
+			glColor4f(.5, .5, .5, .3);
+			glBegin(GL_LINES);
+			int nStep = 1;
+			for (int i = 0; i < g_globalW; i += nStep)
+			{
+				glVertex2f(_fLeft + i*_fScaleW, _fBottom);
+				glVertex2f(_fLeft + i*_fScaleW, _fTop);
+			}
+			for (int j = 0; j < g_globalH; j += nStep)
+			{
+				glVertex2f(_fLeft, _fBottom + j*_fScaleH);
+				glVertex2f(_fRight, _fBottom + j*_fScaleH);
+			}
+			glEnd();
+		}
 	}
 
 
@@ -1093,4 +1110,13 @@ void MyGLWidget::viewShowClusterBV(bool on){
 void MyGLWidget::DrawText(char* pText, double fX, double fY){
 	font.PrintText(pText, fX, fY);
 
+}
+
+// reload texture
+void MyGLWidget::ReloadTexture() {
+	for each (MeteLayer* pLayer in _vecLayers)
+	{
+		pLayer->ReloadTexture();
+	}
+	updateGL();
 }

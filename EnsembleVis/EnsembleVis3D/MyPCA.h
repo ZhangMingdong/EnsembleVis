@@ -6,6 +6,8 @@
 #pragma once
 
 #include "tnt_array2d.h"
+#include "BasicDataStructure.h"
+#include <vector>
 class MyPCA
 {
 public:
@@ -43,5 +45,7 @@ private:
 	void calculateMatrices();
 	// write the four matrices
 	void writeMatrices();
+public:
+	static void generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight);
 };
 
