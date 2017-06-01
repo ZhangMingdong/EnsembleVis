@@ -46,6 +46,12 @@ private:
 	// write the four matrices
 	void writeMatrices();
 public:
-	static void generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight);
+	/*
+		points:			return the generated points
+		arrGridLabel:	label of the grid points
+		nWidth,nHeight:	the width and height of the field
+		dbDis:			the threshold
+	*/
+	static void generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight,double dbDis);
 };
 

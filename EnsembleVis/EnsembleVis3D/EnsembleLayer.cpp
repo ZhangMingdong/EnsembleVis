@@ -81,6 +81,7 @@ void CALLBACK combineCallback(GLdouble coords[3],
 		weight[3] * vertex_data[3][i];
 	*dataOut = vertex;
 }
+
 // ~for tess
 EnsembleLayer::EnsembleLayer() :_dataTexture(NULL)
 {
@@ -162,9 +163,9 @@ void EnsembleLayer::draw(DisplayStates states){
 	double scaleFocusX = (_pModel->GetFocusEast() - _pModel->GetFocusWest()) / 360.0;
 	double scaleFocusY = (_pModel->GetFocusNorth() - _pModel->GetFocusSouth()) / 180.0;
 
-	glPushMatrix();
 	// draw background
 	if (states._bShowBackground){
+		glPushMatrix();
 		glEnable(GL_TEXTURE_2D);
 		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 
@@ -188,6 +189,9 @@ void EnsembleLayer::draw(DisplayStates states){
 		glTexCoord2f(0.0f, 1.0f); glVertex2f(_fLeft, _fTop);
 
 		glEnd();
+
+
+	
 
 		glPopMatrix();
 
@@ -355,6 +359,15 @@ void EnsembleLayer::draw(DisplayStates states){
 			}
 		}
 	}
+	if (states._bShowGradientE)
+	{
+		for (size_t i = 0; i < g_lenEnsembles; i++)
+		{
+			glColor4f(1.0,1.0,0.0,0.06);
+			glCallList(_gllistG + i * 3 + 1);
+		}
+	}
+
 	// union
 	if (states._bShowUnionE)
 	{
@@ -367,14 +380,14 @@ void EnsembleLayer::draw(DisplayStates states){
 				for (size_t j = 0; j < 3; j++)
 				{
 					glColor4f(g_arrColors[j][0], g_arrColors[j][1], g_arrColors[j][2], fTransparency);
-					glCallList(_gllist + (nClusterIndex + 1) * 3 + j);
+					glCallList(_gllistC + nClusterIndex * 3 + j);
 				}
 			}
 			else {
 				for (size_t i = 0, length = _pModel->GetClusters(); i < length; i++)
 				{
 					glColor4f(g_arrColors[i][0], g_arrColors[i][1], g_arrColors[i][2], fTransparency);
-					glCallList(_gllist + (i + 1) * 3 + 1);
+					glCallList(_gllistC + i* 3 + 1);
 				}
 
 			}
@@ -394,7 +407,20 @@ void EnsembleLayer::draw(DisplayStates states){
 			}
 		}
 	}
+	if (states._bShowBeliefEllipse)
+	{
+//		glColor3f(.5, .5, 0);
+		glColor3f(1, 0, 0);
+		glPointSize(2.0f);
+		glBegin(GL_POINTS);
+		const std::vector<Point> pts = _pModel->GetPoints();
+		for (size_t i = 0; i < pts.size(); i++)
+		{
 
+			glVertex3d(pts[i].x* _fScaleW, pts[i].y* _fScaleH, 0);
+		}
+		glEnd();
+	}
 	glPopMatrix();
 
 }
@@ -403,8 +429,8 @@ void EnsembleLayer::ReloadTexture() {
 	// Enable texturing
 	// 	generateBackground();
 	// 	glEnable(GL_TEXTURE_2D);
-//	_dataTexture = _pModel->generateTextureMean();
-	_dataTexture = _pModel->generateTextureGridCluster();
+	_dataTexture = _pModel->generateTexture();
+//	_dataTexture = _pModel->generateTextureGridCluster();
 	//	_dataTexture = _pModel->generateTextureRange(0);
 	//	_dataTexture = _pModel->generateTextureSDF();
 	glGenTextures(1, &texID[0]);
@@ -419,6 +445,7 @@ void EnsembleLayer::ReloadTexture() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _pModel->GetFocusW(), _pModel->GetFocusH(), 0, GL_RGBA, GL_UNSIGNED_BYTE, _dataTexture);
 
 }
+
 void EnsembleLayer::init(){
 	ReloadTexture();
 	// color bar
@@ -451,7 +478,11 @@ void EnsembleLayer::init(){
 
 
 	// initialize tess
-	_gllist = glGenLists((_pModel->GetClusters()+1)*3);	// generate the display lists
+	int nClusterLen = _pModel->GetClusters();
+	_gllist = glGenLists(3);					// generate the display lists
+	_gllistG = glGenLists(g_gradient_l * 3);	// generate the display lists
+	_gllistC = glGenLists(nClusterLen * 3);		// generate the display lists
+
 
 	_tobj = gluNewTess();
 	gluTessCallback(_tobj, GLU_TESS_VERTEX,
@@ -468,10 +499,15 @@ void EnsembleLayer::init(){
 	tessSegmentation(_gllist, _pModel->GetUncertaintyArea());
 	if (g_bClustering)
 	{
-		for (size_t i = 0, length = _pModel->GetClusters(); i < length; i++)
+		for (size_t i = 0; i < nClusterLen; i++)
 		{
-			tessSegmentation(_gllist + (i + 1) * 3, _pModel->GetUncertaintyArea(i));
+			tessSegmentation(_gllistC + i * 3, _pModel->GetUncertaintyArea(i));
 		}
+	}
+	QList<QList<UnCertaintyArea*> > listAreas = _pModel->GetUncertaintyAreaG();
+	for (size_t i = 0, len = listAreas.length(); i < len; i++)
+	{
+		tessSegmentation(_gllistG + i * 3, listAreas[i]);
 	}
 }
 

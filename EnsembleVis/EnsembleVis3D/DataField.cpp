@@ -12,7 +12,6 @@ DataField::DataField(int w, int h, int l):_nW(w),_nH(h),_nL(l)
 	_gridUMin = new double[w*h];
 }
 
-
 DataField::~DataField()
 {
 	delete[] _gridVari;

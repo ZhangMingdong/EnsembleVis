@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <QDebug>
 
 
 #define UNCLASSIFIED -1
@@ -269,16 +270,12 @@ DBSCANClustering::~DBSCANClustering()
 int DBSCANClustering::DoCluster(int h, int w, int nMinPts, double dbEps, const int *arrData, int* arrLabels) {
 	_nH = h;
 	_nW = w;
-	_nMinPts = _nMinPts;
+	_nMinPts = nMinPts;
 	_dbEps = dbEps;
 	_arrData = arrData;
 	_arrLabels = arrLabels;
 
 	_nCurrentlabel = 0;
-	for (size_t i = 0, length = _nH*_nW; i < length; i++)
-	{
-		_arrLabels[i] = -3;
-	}
 	return doCluster();
 }
 
@@ -308,7 +305,10 @@ int DBSCANClustering::doCluster() {
 			}
 		}
 	}
+
+
 	dbscan(points, nPoints, _dbEps, _nMinPts, euclidean_dist);
+
 	for (size_t i = 0; i < nPoints; i++)
 	{
 		_arrLabels[points[i].y*_nW + points[i].x] = points[i].cluster_id;

@@ -13,14 +13,14 @@
   <property name="windowTitle">
    <string>ControlWidget</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2">
-   <item row="0" column="0">
+  <layout class="QVBoxLayout" name="verticalLayout_3">
+   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Background</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout">
+      <item>
        <widget class="QRadioButton" name="radioButtonBackgroundMean">
         <property name="text">
          <string>Mean</string>
@@ -30,10 +30,40 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
+      <item>
        <widget class="QRadioButton" name="radioButtonBackgroundVari">
         <property name="text">
          <string>Variance</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonBackgroundCluster">
+        <property name="text">
+         <string>Cluster</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="radioButtonBackgroundSDF">
+        <property name="text">
+         <string>SDF</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>GroupBox</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="QCheckBox" name="checkBoxShowEllipse">
+        <property name="text">
+         <string>Show Belief Eclipse</string>
         </property>
        </widget>
       </item>

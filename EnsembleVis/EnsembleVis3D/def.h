@@ -117,10 +117,13 @@ const double g_arrTemperatures[] = {
 
 
 // new switch
-const bool g_bClustering = false;
+const bool g_bClustering = false;			// whether do clustering (PCA+AHC)
+const bool g_bSpatialClustering = false;	// whether do spatial clustering (DBSCAN)
 
-// const double g_fThreshold = 273.16-0;
-const double g_fThreshold = 6.0;
+//const double g_fThreshold = 273.16-10;
+const double g_fThreshold = 1.0;
+const int g_nMinPts = 110;
+const double g_dbEps = 6;
 
 const bool g_bGlobalArea = true;
 
@@ -154,10 +157,10 @@ enum enumMeteModel
 };
 
 // used model
-const enumMeteModel g_usedModel = PRE_CMA;
+//const enumMeteModel g_usedModel = PRE_CMA;
 //const enumMeteModel g_usedModel = PRE_CPTEC;
 //const enumMeteModel g_usedModel = PRE_ECCC;
-//const enumMeteModel g_usedModel = PRE_ECMWF;
+const enumMeteModel g_usedModel = PRE_ECMWF;
 //const enumMeteModel g_usedModel = PRE_JMA;
 //const enumMeteModel g_usedModel = PRE_KMA;
 //const enumMeteModel g_usedModel = PRE_NCEP;
@@ -165,3 +168,12 @@ const enumMeteModel g_usedModel = PRE_CMA;
 
 // just use white to show the uncertainty area
 const bool g_bShowUncertaintyOnly = false;
+
+// calculate the uncertainty band based on the signed distance function, otherwise calculate directly
+const bool g_bSDFBand = true;
+
+// the index of the cluster to generate confidence Ellipse, -1 means all
+const int g_nConfidenceEllipseIndex = 5;
+
+// the Mahalanobis distance used in calculating the confidence ellipse
+const double g_dbMDis = 2.0;

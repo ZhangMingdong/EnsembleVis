@@ -27,7 +27,9 @@ public:
 		bool _bShowContourLineMax = false;
 		bool _bShowContourLineMean = false;
 		bool _bShowUnionE = false;
+		bool _bShowGradientE = false;
 		bool _bShowContourLine = false;
+		bool _bShowBeliefEllipse = false;
 	};
 public:
 	MeteLayer();
@@ -51,6 +53,8 @@ private:
 protected:
 	MeteModel* _pModel;
 	GLuint _gllist;                           // display index
+	GLuint _gllistC;                           // display index for clustering
+	GLuint _gllistG;                           // display index for gradient
 	double _fLeft;
 	double _fRight;
 	double _fBottom;

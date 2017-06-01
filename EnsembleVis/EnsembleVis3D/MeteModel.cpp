@@ -76,30 +76,6 @@ MeteModel::~MeteModel()
 	if (_pSDF) {
 		delete _pSDF;
 	}
-	/*
-	if (_gridSDF)
-	{
-		delete[] _gridSDF;
-	}
-	
-	if (_gridVar)
-	{
-		delete[] _gridVar;
-	}
-
-	if (_gridMean)
-	{
-		delete[] _gridMean;
-	}
-	if (_gridUnionMax)
-	{
-		delete[] _gridUnionMax;
-	}
-	if (_gridUnionMin)
-	{
-		delete[] _gridUnionMin;
-	}
-	*/
 
 	for each (UnCertaintyArea* pArea in _listUnionAreaE)
 		delete pArea;
@@ -108,33 +84,11 @@ MeteModel::~MeteModel()
 	{
 		delete pData;
 	}
-	/*
-	for (size_t i = 0; i < _gridMeanC.length(); i++)
-	{
-		if (_gridMeanC[i])
-		{
-			delete[] _gridMeanC[i];
-		}
-		if (_gridVarC[i])
-		{
-			delete[] _gridVarC[i];
-		}
-		if (_gridUnionMaxC[i])
-		{
-			delete[] _gridUnionMaxC[i];
-		}
-		if (_gridUnionMinC[i])
-		{
-			delete[] _gridUnionMinC[i];
-		}
 
-	}
-	*/
 	for (size_t i = 0; i < _listUnionAreaEC.length(); i++)
 	{
 		for each (UnCertaintyArea* pArea in _listUnionAreaEC[i])
 			delete pArea;
-
 	}
 	if (_arrLabels)
 	{
@@ -147,6 +101,12 @@ MeteModel::~MeteModel()
 	if (_pClusterCenter)
 	{
 		delete[] _pClusterCenter;
+	}
+
+	for (size_t i = 0; i < _listUnionAreaEG.length(); i++)
+	{
+		for each (UnCertaintyArea* pArea in _listUnionAreaEG[i])
+			delete pArea;
 	}
 }
 
@@ -182,10 +142,8 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 	_bFilter = bFilter;
 
 	// 2.allocate resource
-
-	_pData = new DataField(_nWidth, _nHeight, _nEnsembleLen);// new double[_nLen*_nEnsembleLen];
-	_pSDF = new DataField(_nWidth, _nHeight, _nEnsembleLen);// new double[_nLen*_nEnsembleLen];
-//	_gridSDF = new double[_nFocusLen*_nEnsembleLen];
+	_pData = new DataField(_nWidth, _nHeight, _nEnsembleLen);
+	_pSDF = new DataField(_nWidth, _nHeight, _nEnsembleLen);
 	_arrLabels = new int[_nEnsembleLen];
 	_arrGridLabels = new int[_nLen];
 
@@ -203,28 +161,87 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 
 	
 	// DBSCAN
-	doSpatialClustering();
-//	useSpatialClustering();
+	for (size_t i = 0; i < _nLen; i++)
+	{
+		_arrGridLabels[i] = -3;
+	}
+	if (g_bSpatialClustering) {
+		doSpatialClustering();
+	}
 
 	// 5.generate features
 	ContourGenerator generator;
-	generator.Generate(_pData->GetMean(), _listContourMeanE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
-	generator.Generate(_pData->GetUMin(), _listContourMinE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
-	generator.Generate(_pData->GetUMax(), _listContourMaxE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
 	for (size_t i = 0; i < _nEnsembleLen; i++)
 	{
 		QList<ContourLine> contour;
 		generator.Generate(_pData->GetLayer(i), contour, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
 		_listContour.push_back(contour);
 	}
+	if (g_bSDFBand||g_bClustering)
+	{
+		// calculate SDF
+		for (size_t i = 0; i < _nEnsembleLen; i++)
+		{
+			calculateSDF(_pData->GetLayer(i), _pSDF->GetEditableLayer(i), _nWidth, _nHeight, g_fThreshold, _listContour[i]);
+		}
+		_pSDF->DoStatistic();
+	}
+
+
+	if (g_bSDFBand)
+	{
+		generator.Generate(_pSDF->GetUMin(), _listContourMinE, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+		generator.Generate(_pSDF->GetUMax(), _listContourMaxE, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+		generator.Generate(_pSDF->GetMean(), _listContourMeanE, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+		// generate gradient feature
+		double* arrTempMin = new double[_nLen];
+		double* arrTempMax = new double[_nLen];
+		const double* pMean = _pSDF->GetMean();
+		const double* pVari = _pSDF->GetVari();
+		double dbScale = 0.1;
+		for (size_t i = 0; i < g_gradient_l; i++)
+		{
+			for (size_t j = 0; j < _nLen; j++)
+			{
+				arrTempMin[j] = pMean[j] - dbScale*pVari[j];
+				arrTempMax[j] = pMean[j] + dbScale*pVari[j];
+			}
+			dbScale += 0.1;
+			QList<ContourLine> contourMin;
+			QList<ContourLine> contourMax;
+			generator.Generate(arrTempMin, contourMin, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+			generator.Generate(arrTempMax, contourMax, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+			_listContourMinEG.push_back(contourMin);
+			_listContourMaxEG.push_back(contourMax);
+		}
+		delete[] arrTempMin;
+		delete[] arrTempMax;
+
+		for (size_t i = 0; i < g_gradient_l; i++)
+		{
+			QList<UnCertaintyArea*> area;
+			generateContourImp(_listContourMinEG[i], _listContourMaxEG[i], area);
+			_listUnionAreaEG.push_back(area);
+		}
+	}
+	else {
+		generator.Generate(_pData->GetUMin(), _listContourMinE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+		generator.Generate(_pData->GetUMax(), _listContourMaxE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+		generator.Generate(_pData->GetMean(), _listContourMeanE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
+	}
+
+
+
+	generateContourImp(_listContourMinE, _listContourMaxE, _listUnionAreaE);
+
 	if (g_bClustering)
 	{
-		// 6.PCA
+		// 1.PCA
 		doPCA();
 
 		bool bUsingGlobalData = false;	// not just focus the iso value
 		double dbIsoValue;
-		// 7.generate clustered data
+		// 2.generate clustered data
 		if (bUsingGlobalData)
 		{
 			_pData->GenerateClusteredData(_listClusterLen, _arrLabels, _listClusterData);
@@ -234,7 +251,7 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 			dbIsoValue = 0;
 			_pSDF->GenerateClusteredData(_listClusterLen, _arrLabels, _listClusterData);
 		}
-		// 8.generate features for clusters
+		// 3.generate features for clusters
 		for (size_t i = 0; i < _nClusters; i++)
 		{
 			QList<ContourLine> listContourMin;
@@ -256,12 +273,12 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 			generator.Generate(_pClusterCenter + i*_nLen, listContourMeanPCA, 0, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
 			_listContourMeanPCA.push_back(listContourMeanPCA);
 		}
-		// put the spaghetti into different list according to their clusters
+		// 4.put the spaghetti into different list according to their clusters
 		for (size_t i = 0; i < _nEnsembleLen; i++)
 		{
 			_listContourC[_arrLabels[i]].push_back(_listContour[i]);
 		}
-		// 9.generate uncertainty areas
+		// 5.generate uncertainty areas
 		for (size_t i = 0; i < _nClusters; i++)
 		{
 			if (_listClusterLen[i]>1)
@@ -270,8 +287,6 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 			}
 		}
 	}
-
-	generateContourImp(_listContourMinE, _listContourMaxE, _listUnionAreaE);
 }
 
 void MeteModel::readDataFromText() {
@@ -307,12 +322,7 @@ void MeteModel::readDataFromText() {
 
 void MeteModel::doPCA() {
 	int nPCALen = _nEnsembleLen - 1;
-	// 0.calculate the sdf
-	for (size_t i = 0; i < _nEnsembleLen; i++)
-	{
-		calculateSDF(_pData->GetLayer(i), _pSDF->GetEditableLayer(i), _nWidth, _nHeight, g_fThreshold, _listContour[i]);
-	}
-	_pSDF->DoStatistic();
+
 	// 1.pca
 	MyPCA pca;
 	double* arrData = new double[_nEnsembleLen*nPCALen];
@@ -410,40 +420,36 @@ void MeteModel::calculateSDF(const double* arrData, double* arrSDF, int nW, int 
 }
 
 GLubyte* MeteModel::generateTexture() {
-	GLubyte* _dataTexture = new GLubyte[4 * _nLen];
+	if (_bgFunction==bg_cluster)
+	{
+		// using cluster lable
+		return generateTextureGridCluster();
+	}
+	if (_bgFunction == bg_sdf)
+	{
+		// using cluster lable
+		return generateTextureSDF();
+	}
+	// using mean or variance
+	const double* pData = _bgFunction == bg_mean ? _pData->GetMean() : _pData->GetVari();
+	GLubyte* dataTexture = new GLubyte[4 * _nFocusLen];
+
 	// color map
-	if (true)
-	{
-		ColorMap* colormap = ColorMap::GetInstance();
+	ColorMap* colormap = ColorMap::GetInstance();
+	for (int i = _nFocusY, iLen = _nFocusY + _nFocusH; i < iLen; i++) {
+		for (int j = _nFocusX, jLen = _nFocusX + _nFocusW; j < jLen; j++) {
 
-		for (int i = 0; i < _nLen; i++)
-		{
-			MYGLColor color = colormap->GetColor(_pData->GetMean()[i]);
+			int nIndex = i*_nWidth + j;
+			int nIndexFocus = (i - _nFocusY)*_nFocusW + j - _nFocusX;
+			MYGLColor color = colormap->GetColor(pData[nIndex]);
 			// using transparency and the blue tunnel
-			_dataTexture[4 * i + 0] = color._rgb[0];
-			_dataTexture[4 * i + 1] = color._rgb[1];
-			_dataTexture[4 * i + 2] = color._rgb[2];
-			_dataTexture[4 * i + 3] = (GLubyte)255;
+			dataTexture[4 * nIndexFocus + 0] = color._rgb[0];
+			dataTexture[4 * nIndexFocus + 1] = color._rgb[1];
+			dataTexture[4 * nIndexFocus + 2] = color._rgb[2];
+			dataTexture[4 * nIndexFocus + 3] = (GLubyte)255;
 		}
 	}
-
-	// color map of variance
-	if (false)
-	{
-		ColorMap* colormap = ColorMap::GetInstance();
-
-		for (int i = 0; i < _nLen; i++)
-		{
-			MYGLColor color = colormap->GetColor(_pData->GetVari()[i]);
-			// using transparency and the blue tunnel
-			_dataTexture[4 * i + 0] = color._rgb[0];
-			_dataTexture[4 * i + 1] = color._rgb[1];
-			_dataTexture[4 * i + 2] = color._rgb[2];
-			_dataTexture[4 * i + 3] = (GLubyte)255;
-		}
-	}
-
-	return _dataTexture;
+	return dataTexture;
 }
 
 GLubyte* MeteModel::generateTextureMean() {
@@ -675,7 +681,7 @@ GLubyte* MeteModel::generateTextureSDF() {
 
 	double fMin = 100000;
 	double fMax = -100000;
-	const double* pData = _pSDF->GetLayer(0);
+	const double* pData = _pSDF->GetMean();
 //	double* pData = _pClusterCenter + 2 * _nLen;	// using the third cluster
 
 	for (int i = 0; i < _nLen; i++)
@@ -753,7 +759,7 @@ void MeteModel::doSpatialClustering() {
 		if (_arrGridLabels[i] > nClusters) nClusters = _arrGridLabels[i];
 	}
 	bool bRaw = false;	// weather using raw data or belief eclipse
-
+	nClusters++;
 	_points.clear();
 	if (bRaw) {
 		for (size_t i = 0; i < _nHeight; i++)
@@ -768,57 +774,20 @@ void MeteModel::doSpatialClustering() {
 		}
 	}
 	else {
-		for (size_t i = 0; i < nClusters; i++)
+		if (g_nConfidenceEllipseIndex>0)
 		{
-			MyPCA::generateEllipse(_points, _arrGridLabels, i, _nWidth, _nHeight);
+			if (g_nConfidenceEllipseIndex < nClusters) {
+				MyPCA::generateEllipse(_points, _arrGridLabels, g_nConfidenceEllipseIndex, _nWidth, _nHeight,g_dbMDis);
+			}
+		}
+		else {
+			for (size_t i = 0; i < nClusters; i++)
+			{
+				MyPCA::generateEllipse(_points, _arrGridLabels, i, _nWidth, _nHeight, g_dbMDis);
+			}
 		}
 	}
 	delete[] arrState;
 }
 
 
-
-void MeteModel::useSpatialClustering() {
-	// dbscan
-	for (size_t i = 0; i < _nLen; i++)
-	{
-		_arrGridLabels[i] = -3;
-	}
-	int x;
-	int y;
-	int label;
-	ifstream input("spatial_clustering.txt");
-	while (input.good())
-	{
-		input >> x >> y >> label;
-		_arrGridLabels[y*_nWidth + x] = label;
-	}
-	input.close();
-
-
-	int nClusters = 0;
-	for (size_t i = 0; i < _nLen; i++)
-	{
-		if (_arrGridLabels[i] > nClusters) nClusters = _arrGridLabels[i];
-	}
-	bool bRaw = false;	// weather using raw data or belief eclipse
-	_points.clear();
-	if (bRaw) {
-		for (size_t i = 0; i < _nHeight; i++)
-		{
-			for (size_t j = 0; j < _nWidth; j++)
-			{
-				if (_arrGridLabels[i*_nWidth + j] == 1) {
-
-					_points.push_back(Point(DPoint3(j, i, 0)));
-				}
-			}
-		}
-	}
-	else {
-		for (size_t i = 0; i < nClusters; i++)
-		{
-			MyPCA::generateEllipse(_points, _arrGridLabels, i, _nWidth, _nHeight);
-		}
-	}
-}

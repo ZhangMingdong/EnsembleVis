@@ -189,6 +189,7 @@ public slots:
 	void viewShowIntersection(bool on);
 	void viewShowUnionB(bool on);
 	void viewShowUnionE(bool on);
+	void viewShowGradientE(bool on);
 	void viewShowLineChart(bool on);
 	void viewShowContourLineTruth(bool on);
 	void viewShowContourLine(bool on);
@@ -197,6 +198,8 @@ public slots:
 	void viewShowContourLineMean(bool on);
 	void viewShowClusterBS(bool on);
 	void viewShowClusterBV(bool on);
+
+	void onCheckShowBeliefEllipse(bool bChecked);
 
 private:
 	// vector of layers to render

@@ -62,6 +62,9 @@ public:
 	virtual QList<UnCertaintyArea*> GetUncertaintyArea(int nLabel) { 
 		return _listUnionAreaEC[nLabel]; 
 	}
+	virtual const QList<QList<UnCertaintyArea*> > GetUncertaintyAreaG() {
+		return _listUnionAreaEG;
+	}
 protected:
 	// the data
 	DataField* _pData;
@@ -106,6 +109,18 @@ protected:
 	QList<ContourLine> _listContourMeanE;
 	QList<QList<ContourLine>> _listContour;
 
+	// list of the uncertainty area of union of E	(clustered)
+	QList<QList<UnCertaintyArea*>> _listUnionAreaEC;
+	QList<QList<ContourLine>> _listContourMinEC;
+	QList<QList<ContourLine>> _listContourMaxEC;
+	QList<QList<ContourLine>> _listContourMeanEC;
+	QList<QList<QList<ContourLine>>> _listContourC;
+
+	// list of the uncertainty area of union of E	(for gradient)
+	QList<QList<UnCertaintyArea*>> _listUnionAreaEG;
+	QList<QList<ContourLine>> _listContourMinEG;
+	QList<QList<ContourLine>> _listContourMaxEG;
+
 	// length of each cluster
 	QList<int> _listClusterLen;
 	// array of labels
@@ -115,12 +130,6 @@ protected:
 	// number of clusters
 	int _nClusters;
 
-	// list of the uncertainty area of union of E
-	QList<QList<UnCertaintyArea*>> _listUnionAreaEC;
-	QList<QList<ContourLine>> _listContourMinEC;
-	QList<QList<ContourLine>> _listContourMaxEC;
-	QList<QList<ContourLine>> _listContourMeanEC;
-	QList<QList<QList<ContourLine>>> _listContourC;
 
 	// cluster mean of pca
 	QList<QList<ContourLine>> _listContourMeanPCA;
@@ -157,8 +166,10 @@ private:
 public:
 	enum enumBackgroundFunction
 	{
-		bg_mean,
-		bg_vari
+		bg_mean,			// mean
+		bg_vari,			// variance
+		bg_cluster,			// spatial cluster
+		bg_sdf				// signed distance function
 	};
 protected:
 	// using which background function
@@ -166,13 +177,14 @@ protected:
 public:
 	void SetBgFunctionMean(enumBackgroundFunction f) { _bgFunction = f; }
 private:
+	// do the spatial clustering for the grid point above threshold value
 	void doSpatialClustering();
-	void useSpatialClustering();
 private:
 	// Point list
 	std::vector<Point> _points;
 public:
 	const std::vector<Point> GetPoints() { return _points; }
+	
 
 };
 

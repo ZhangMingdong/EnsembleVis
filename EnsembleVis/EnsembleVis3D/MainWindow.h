@@ -37,6 +37,7 @@ private:
 	QAction *viewShowIntersectionAction;
 	QAction *viewShowUnionBAction;
 	QAction *viewShowUnionEAction;
+	QAction *viewShowGradientEAction;
 	QAction *viewShowLineChartAction;
 	QAction *viewShowContourLineTruthAction;
 	QAction *viewShowContourLineAction;
@@ -170,6 +171,8 @@ public slots:
 
 	void onSelectBackgroundMean(bool bChecked);
 	void onSelectBackgroundVari(bool bChecked);
+	void onSelectBackgroundCluster(bool bChecked);
+	void onSelectBackgroundSDF(bool bChecked);
 protected:
 	virtual void closeEvent(QCloseEvent *event);
 };

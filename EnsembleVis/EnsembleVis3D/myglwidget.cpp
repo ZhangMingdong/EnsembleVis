@@ -87,7 +87,6 @@ void vectorMult(const double* pt0, const double* pt1, const double* pt2, double*
 	vertorMult(m1, m2, result);
 }
 
-
 MyGLWidget::MyGLWidget(QWidget *parent)
 : QGLWidget(parent)
 , m_dbRadius(1000)
@@ -701,10 +700,12 @@ void MyGLWidget::reset()
 
 
 }
+
 void MyGLWidget::timerEvent(QTimerEvent* event)
 {
 
 }
+
 void MyGLWidget::mousePressEvent(QMouseEvent * event)
 {
 	if (event->button() == Qt::MidButton)
@@ -718,10 +719,12 @@ void MyGLWidget::mousePressEvent(QMouseEvent * event)
 	}
 	updateGL();
 }
+
 void MyGLWidget::mouseReleaseEvent(QMouseEvent * event)
 {
 
 }
+
 void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
 	if (m_nMouseState==1){	// left button down
@@ -758,6 +761,7 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 		updateGL();
 	}
 }
+
 void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
 
 	// last pickIndex
@@ -804,6 +808,7 @@ void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
 		updateGL();
 	}
 }
+
 void MyGLWidget::wheelEvent(QWheelEvent * event)
 {
 	double fScale;
@@ -828,6 +833,7 @@ void MyGLWidget::wheelEvent(QWheelEvent * event)
 
 	updateGL();
 }
+
 void MyGLWidget::rotate(const double* axis, double angle)
 {
 
@@ -859,6 +865,7 @@ void MyGLWidget::move(QPoint pt1, QPoint pt2){
 	glMultMatrixd(m_modelViewMatrixGlobal);
 	glGetDoublev(GL_MODELVIEW_MATRIX, m_modelViewMatrixGlobal);
 }
+
 void MyGLWidget::updateTrackBallPos(QPoint pt, double* result)
 {
 
@@ -874,57 +881,15 @@ void MyGLWidget::updateTrackBallPos(QPoint pt, double* result)
 
 }
 
-// void MyGLWidget::generateBackground(){
-// 	_dataTexture = new GLubyte[4 * g_focus_l];
-// 
-// 	double fMin = 100000;
-// 	double fMax = -100000;
-// 
-// 	for (int i = 0; i < g_focus_l; i++)
-// 	{
-// 		double f = _pDataE[i];
-// 		if (_pDataE[i]>fMax) fMax = _pDataE[i];
-// 		if (_pDataE[i] < fMin) fMin = _pDataE[i];
-// 	}
-// 	double fRange = fMax - fMin;
-// 
-// 	for (int i = 0; i < g_focus_l; i++)
-// 	{
-// 		// using transparency and the blue tunnel
-// // 		_dataTexture[4 * i] = (GLubyte)0;
-// // 		_dataTexture[4 * i + 1] = (GLubyte)0;
-// // 		_dataTexture[4 * i + 2] = (GLubyte)((_pDataE[i] - fMin) * 254 / fRange);
-// // 		_dataTexture[4 * i + 3] = (GLubyte)((_pDataE[i] - fMin) * 254 / fRange);
-// 
-// 		// shreshold
-// 		_dataTexture[4 * i] = (GLubyte)0;
-// 		_dataTexture[4 * i + 1] = (GLubyte)0;
-// 		_dataTexture[4 * i + 2] = (GLubyte)(_pDataE[i]>2?255:0);
-// 		_dataTexture[4 * i + 3] = (GLubyte)(_pDataE[i]>2 ? 100 : 0);
-// 
-// 		// stripped
-// // 		double fValue = 0;
-// // 		if (_pDataE[i]<2) fValue = 0;
-// // 		else if (_pDataE[i]<5) fValue = 0;
-// // 		else if (_pDataE[i]<10) fValue = 50;
-// // 		else if (_pDataE[i]<30) fValue = 100;
-// // 		else if (_pDataE[i]<50) fValue = 150;
-// // 		else if (_pDataE[i]<70) fValue = 200;
-// // 		else if (_pDataE[i]<90) fValue = 250;
-// // 
-// // 		_dataTexture[4 * i] = (GLubyte)(255 - fValue);
-// // 		_dataTexture[4 * i + 1] = (GLubyte)(255 - fValue);
-// // 		_dataTexture[4 * i + 2] = (GLubyte)(255);
-// // 		_dataTexture[4 * i + 3] = (GLubyte)(100);
-// 	}
-// }
 void MyGLWidget::SetDataT(const double* data){
 	_pDataT = data;
 
 }
+
 void MyGLWidget::SetLabels(const int* labels){
 	_arrLabels = labels;
 }
+
 void MyGLWidget::SetDataB(const double* data){
 	_pDataB = data;
 }
@@ -941,21 +906,21 @@ void MyGLWidget::SetVar(const double* pVM, const double *pMV){
 	_gridDataMeanVarB = pMV;
 	_gridDataVarMeanB = pVM;
 }
+
 void MyGLWidget::SetContour(QList<ContourLine>* listContour){
 	for (int i = 0; i < g_temperatureLen; i++)
 	{
 		_listContour[i] = listContour[i];
 	}
 }
+
 void MyGLWidget::SetContourTruth(QList<ContourLine>* listContourTruth){
 	for (int i = 0; i < g_temperatureLen; i++)
 	{
 		_listContourTruth[i] = listContourTruth[i];
 	}
 }
-// void MyGLWidget::SetContourMin(QList<ContourLine> listContour){
-// 	_listContourMin = listContour;
-// }
+
 void MyGLWidget::SetContourMean(QList<ContourLine>* listContour){
 	for (int i = 0; i < g_temperatureLen; i++)
 	{
@@ -963,9 +928,6 @@ void MyGLWidget::SetContourMean(QList<ContourLine>* listContour){
 	}
 
 }
-// void MyGLWidget::SetContourMax(QList<ContourLine> listC){
-// 	_listContourMax = listC;
-// }
 
 void MyGLWidget::SetContourIntervalB(QList<ContourLine>* listContourMin, QList<ContourLine>* listContourMax){
 	for (int i = 0; i < g_temperatureLen; i++)
@@ -975,16 +937,6 @@ void MyGLWidget::SetContourIntervalB(QList<ContourLine>* listContourMin, QList<C
 	}
 }
 
-// void MyGLWidget::SetContourIntervalE(QList<ContourLine>* listContourMin, QList<ContourLine>* listContourMax){
-// 	for (int i = 0; i < g_temperatureLen; i++)
-// 	{
-// 		_listContourMinE[i] = listContourMin[i];
-// 		_listContourMaxE[i] = listContourMax[i];
-// 	}
-// // 	_listContourMaxE = listContourMax;
-// // 	_listContourMinE = listContourMin;
-// }
-
 void MyGLWidget::SetMultiStatistic(QList<ContourLine>* listContourMin, QList<ContourLine>* listContourMax){
 	for (int i = 0; i < g_gradient_l;i++)
 	{
@@ -992,7 +944,6 @@ void MyGLWidget::SetMultiStatistic(QList<ContourLine>* listContourMin, QList<Con
 		_listContourMax_3[i] = listContourMax[i];
 	}
 }
-
 
 void MyGLWidget::generateContour(){
 	// data preparation
@@ -1074,13 +1025,21 @@ void MyGLWidget::viewShowGrid(bool on){
 void MyGLWidget::viewShowBackground(bool on){
 	_displayStates._bShowBackground = on; updateGL();
 };
+void MyGLWidget::onCheckShowBeliefEllipse(bool bChecked) {
+	_displayStates._bShowBeliefEllipse = bChecked; updateGL();
+}
 void MyGLWidget::viewShowIntersection(bool on){
 	_bShowIntersection = on; updateGL(); };
 void MyGLWidget::viewShowUnionB(bool on){ 
 	_bShowUnionB = on; updateGL();
 };
 void MyGLWidget::viewShowUnionE(bool on){
-	_displayStates._bShowUnionE = on; updateGL();
+	_displayStates._bShowUnionE = on; 
+	updateGL();
+};
+void MyGLWidget::viewShowGradientE(bool on) {
+	_displayStates._bShowGradientE = on; 
+	updateGL();
 };
 void MyGLWidget::viewShowLineChart(bool on){
 //	_bShowLineChart = on;
@@ -1120,3 +1079,4 @@ void MyGLWidget::ReloadTexture() {
 	}
 	updateGL();
 }
+

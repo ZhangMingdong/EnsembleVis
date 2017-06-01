@@ -51,6 +51,7 @@ const QString ShowBackground("ShowBackground");
 const QString ShowIntersection("ShowIntersection");
 const QString ShowUnionB("ShowUnionB");
 const QString ShowUnionE("ShowUnionE");
+const QString ShowGradientE("ShowGradientE");
 const QString ShowLineChart("ShowLineChart");
 const QString ShowContourLineTruth("ShowContourLineTruth");
 const QString ShowContourLine("ShowContourLine");
@@ -59,6 +60,7 @@ const QString ShowContourLineMax("ShowContourLineMax");
 const QString ShowContourLineMean("ShowContourLineMean");
 const QString ShowClusterBS("ShowClusterBS");
 const QString ShowClusterBV("ShowClusterBV");
+const QString ShowBeliefEllipse("ShowBeliefEllipse");
 
 
 MainWindow::~MainWindow(){
@@ -312,6 +314,7 @@ MainWindow::MainWindow()
 	viewShowIntersectionAction->setChecked(settings.value(ShowIntersection, true).toBool());
 	viewShowUnionBAction->setChecked(settings.value(ShowUnionB, true).toBool());
 	viewShowUnionEAction->setChecked(settings.value(ShowUnionE, true).toBool());
+	viewShowGradientEAction->setChecked(settings.value(ShowGradientE, true).toBool());
 	viewShowLineChartAction->setChecked(settings.value(ShowLineChart, true).toBool());
 	viewShowContourLineTruthAction->setChecked(settings.value(ShowContourLineTruth, true).toBool());
 	viewShowContourLineAction->setChecked(settings.value(ShowContourLine, true).toBool());
@@ -320,6 +323,8 @@ MainWindow::MainWindow()
 	viewShowContourLineMeanAction->setChecked(settings.value(ShowContourLineMean, true).toBool());
 	viewShowClusterBSAction->setChecked(settings.value(ShowClusterBS, true).toBool());
 	viewShowClusterBVAction->setChecked(settings.value(ShowClusterBV, true).toBool());
+
+	_pControlWidget->ui.radioButtonBackgroundCluster->setChecked(settings.value(ShowClusterBV, true).toBool());
 
 
 
@@ -461,23 +466,18 @@ void MainWindow::populateMenusAndToolBars()
 		<< separator
 		<< viewShowGridLinesAction
 		<< viewShowBackgroundAction
-		<< viewShowIntersectionAction
-		<< viewShowUnionBAction
+//		<< viewShowIntersectionAction
+//		<< viewShowUnionBAction
 		<< viewShowUnionEAction
-		<< viewShowLineChartAction
+		<< viewShowGradientEAction
+//		<< viewShowLineChartAction
 		<< viewShowContourLineTruthAction
 		<< viewShowContourLineAction
 		<< viewShowContourLineMinAction
 		<< viewShowContourLineMaxAction
 		<< viewShowContourLineMeanAction
-		<< viewShowClusterBSAction
-		<< viewShowClusterBVAction
-// 		<< viewShowFullTitleAction
-// 		<< viewOpenFolder
-// 		<< separator
-// 		<< viewShowPublicationList
-// 		<< viewShowArticleList
-// 		<< viewShowProperty
+//		<< viewShowClusterBSAction
+//		<< viewShowClusterBVAction
 );
 
 // 	// state
@@ -534,6 +534,10 @@ void MainWindow::createActions()
 	viewShowUnionEAction->setIcon(QIcon(":/images/ue.png"));
 	viewShowUnionEAction->setCheckable(true);
 
+	viewShowGradientEAction = new QAction(tr("Show Gradient E"), this);
+	viewShowGradientEAction->setIcon(QIcon(":/images/ge.png"));
+	viewShowGradientEAction->setCheckable(true);
+
 	viewShowLineChartAction = new QAction(tr("Show LineChart"), this);
 	viewShowLineChartAction->setIcon(QIcon(":/images/showgrid.png"));
 	viewShowLineChartAction->setCheckable(true);
@@ -576,6 +580,7 @@ void MainWindow::createConnections(){
 	connect(viewShowIntersectionAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowIntersection(bool)));
 	connect(viewShowUnionBAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowUnionB(bool)));
 	connect(viewShowUnionEAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowUnionE(bool)));
+	connect(viewShowGradientEAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowGradientE(bool)));
 	connect(viewShowLineChartAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowLineChart(bool)));
 	connect(viewShowContourLineTruthAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLineTruth(bool)));
 	connect(viewShowContourLineAction, SIGNAL(toggled(bool)), _view3D, SLOT(viewShowContourLine(bool)));
@@ -588,6 +593,11 @@ void MainWindow::createConnections(){
 
 	connect(_pControlWidget->ui.radioButtonBackgroundMean, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundMean(bool)));
 	connect(_pControlWidget->ui.radioButtonBackgroundVari, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundVari(bool)));
+	connect(_pControlWidget->ui.radioButtonBackgroundCluster, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundCluster(bool)));
+	connect(_pControlWidget->ui.radioButtonBackgroundSDF, SIGNAL(clicked(bool)), this, SLOT(onSelectBackgroundSDF(bool)));
+
+
+	connect(_pControlWidget->ui.checkBoxShowEllipse, SIGNAL(toggled(bool)), _view3D, SLOT(onCheckShowBeliefEllipse(bool)));
 
 
 }
@@ -887,6 +897,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
 		settings.setValue(ShowIntersection, viewShowIntersectionAction->isChecked());
 		settings.setValue(ShowUnionB, viewShowUnionBAction->isChecked());
 		settings.setValue(ShowUnionE, viewShowUnionEAction->isChecked());
+		settings.setValue(ShowGradientE, viewShowGradientEAction->isChecked());
 		settings.setValue(ShowLineChart, viewShowLineChartAction->isChecked());
 		settings.setValue(ShowContourLineTruth, viewShowContourLineTruthAction->isChecked());
 		settings.setValue(ShowContourLine, viewShowContourLineAction->isChecked());
@@ -895,6 +906,9 @@ void MainWindow::closeEvent(QCloseEvent *event)
 		settings.setValue(ShowContourLineMean, viewShowContourLineMeanAction->isChecked());
 		settings.setValue(ShowClusterBS, viewShowClusterBSAction->isChecked());
 		settings.setValue(ShowClusterBV, viewShowClusterBVAction->isChecked());
+
+		settings.setValue(ShowBeliefEllipse, _pControlWidget->ui.radioButtonBackgroundCluster->isChecked());
+
 		event->accept();
 	}
 // 	else
@@ -1095,4 +1109,12 @@ void MainWindow::onSelectBackgroundVari(bool bChecked) {
 	_pModel->SetBgFunctionMean(MeteModel::bg_vari);
 	_view3D->ReloadTexture();
 
+}
+void MainWindow::onSelectBackgroundCluster(bool bChecked) {
+	_pModel->SetBgFunctionMean(MeteModel::bg_cluster);
+	_view3D->ReloadTexture();
+}
+void MainWindow::onSelectBackgroundSDF(bool bChecked) {
+	_pModel->SetBgFunctionMean(MeteModel::bg_sdf);
+	_view3D->ReloadTexture();
 }

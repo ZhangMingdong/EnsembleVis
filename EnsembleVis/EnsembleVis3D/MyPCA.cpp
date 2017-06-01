@@ -558,7 +558,7 @@ void MyPCA::writeMatrices() {
 }
 
 
-void MyPCA::generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight) {
+void MyPCA::generateEllipse(std::vector<Point>& points, int* arrGridLabel, int label, int nWidth, int nHeight, double dbDis) {
 	// calculate the confidence eclipse
 
 	int row = 0;
@@ -614,7 +614,7 @@ void MyPCA::generateEllipse(std::vector<Point>& points, int* arrGridLabel, int l
 			multiply(m0, covar_matrix_r, m);
 			multiply(m, m1, mr);
 			double alpha = sqrt(mr[0][0]);
-			if (alpha<2)
+			if (alpha<dbDis)
 			{
 				points.push_back(DPoint3(j, i, 0));
 			}
