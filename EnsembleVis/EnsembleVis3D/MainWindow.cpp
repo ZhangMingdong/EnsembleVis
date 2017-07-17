@@ -23,7 +23,9 @@
 
 #include "myglwidget.h"
 
-#include "MeteModel.h"
+#include "EnsembleModel.h"
+#include "ContourBandDepthModel.h"
+#include "ReanalysisModel.h"
 
 // using the original temperature data
 #define TEMPERATURE
@@ -92,15 +94,7 @@ MainWindow::~MainWindow(){
 	delete[] _dataT;
 	delete[] _arrIntersections;
 
-	delete _pModelCPTEC;
-	delete _pModelKMA;
-	delete _pModelNCEP;
-	delete _pModelCMA;
-	delete _pModelJMA;
-	delete _pModelECCC;
-	delete _pModelECMWF;
-	delete _pModelECMWFTemperature;
-//	delete _pModelECMWFTemperatureT;
+	if (_pModel) delete _pModel;
 }
 
 MainWindow::MainWindow()
@@ -166,7 +160,6 @@ MainWindow::MainWindow()
 		nFocusH = nHeight;
 	}
 	else {
-
 		if (g_bFilter) {
 			nWidth = 91;
 			nHeight = 51;
@@ -206,58 +199,58 @@ MainWindow::MainWindow()
 		}
 
 	}
-
-
 	
-	_pModelCMA = new MeteModel(); 	
-	_pModelCPTEC = new MeteModel();
-	_pModelECCC = new MeteModel();
-	_pModelECMWF = new MeteModel();
-	_pModelJMA = new MeteModel();
-	_pModelKMA = new MeteModel();
-	_pModelNCEP = new MeteModel();
-	_pModelECMWFTemperature = new MeteModel();// MeteModel();
-
-//	_pModelECMWFTemperatureT = new MeteModel();// MeteModel();
-//	_pModelECMWFTemperatureT->InitModel(1, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data5.dat", true
-//		, nWest, nEast, nSouth, nNorth
-//		, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, bFilter);
 
 
-	bool bNewData = false;
 
+	bool bNewData = true;
 
 	switch (g_usedModel)
 	{
 	case PRE_CMA:
-		_pModel = _pModelCMA;
-		_pModelCMA->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cma-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cma-20160802-00-96.txt"); break;
 	case PRE_CPTEC:
-		_pModel = _pModelCPTEC; _pModelCPTEC->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cptec-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(14, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-cptec-20160802-00-96.txt"); break;
 	case PRE_ECCC:
-		_pModel = _pModelECCC; _pModelECCC->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-eccc-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-eccc-20160802-00-96.txt"); break;
 	case PRE_ECMWF:
-		_pModel = _pModelECMWF; _pModelECMWF->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ecmwf-20160802-00-96.txt"); break;
 	case PRE_JMA:
-		_pModel = _pModelJMA; _pModelJMA->InitModel(26, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-jma-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(26, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-jma-20160802-00-96.txt"); break;
 	case PRE_KMA:
-		_pModel = _pModelKMA; _pModelKMA->InitModel(24, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-kma-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(24, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-kma-20160802-00-96.txt"); break;
 	case PRE_NCEP:
-		_pModel = _pModelNCEP; _pModelNCEP->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ncep-20160802-00-96.txt"); break;
+		_pModel = new EnsembleModel();
+		_pModel->InitModel(20, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data10/pre-mod-ncep-20160802-00-96.txt"); break;
 	case T2_ECMWF:
-		_pModel = _pModelECMWFTemperature;
+		_pModel = new ContourBandDepthModel();
 		if (bNewData) {
-			_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
-				, "../../data/t2-mod-ecmwf-20160105-00-72-216.txt", false
+			_pModel->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
+//				, "../../data/t2-mod-ecmwf-20160105-00-72-216.txt", false
+//				, "../../data/t2-2007-2017-jan-120h-50.txt", false
+				, "../../data/t2-2007-2017-jan-144 and 240h-50.txt", false
 				, nWest, nEast, nSouth, nNorth
 				, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
 		}
 		else {
 
-			_pModelECMWFTemperature->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/data6.dat", true
+			_pModel->InitModel(50, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH, "../../data/t2_mod_20080101-96h.dat", true
 				, nWest, nEast, nSouth, nNorth
 				, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, g_bFilter);
 		}
+		break;
+	case T2_Reanalysis:
+		_pModel = new ReanalysisModel();
+		_pModel->InitModel(1209, nWidth, nHeight, nFocusX, nFocusY, nFocusW, nFocusH
+			, "../../data/t2_obs_1979-2017_1_china.txt", false
+			, nWest, nEast, nSouth, nNorth
+			, nFocusWest, nFocusEast, nFocusSouth, nFocusNorth, false);
 		break;
 	defaut:
 		break;
@@ -267,7 +260,7 @@ MainWindow::MainWindow()
 
 // 	double fValue = 0273.16 + g_temperature + .0001;
 
-	double fValue = g_temperature + .0001;
+//	double fValue = g_temperature + .0001;
 
 
 // 	readDataB();
@@ -344,28 +337,7 @@ void MainWindow::createSceneAndView(){
 	_view3D->SetLabels(_gridLabels);
 
 	_view3D->SetDataB(_dataB);
-	switch (g_usedModel)
-	{
-	case PRE_CMA:_view3D->SetModelE(_pModelCMA); break;
-	case PRE_CPTEC:_view3D->SetModelE(_pModelCPTEC); break;
-	case PRE_ECCC:_view3D->SetModelE(_pModelECCC); break;
-	case PRE_ECMWF:_view3D->SetModelE(_pModelECMWF); break;
-	case PRE_JMA:_view3D->SetModelE(_pModelJMA); break;
-	case PRE_KMA:_view3D->SetModelE(_pModelKMA); break;
-	case PRE_NCEP:_view3D->SetModelE(_pModelNCEP); break;
-	case T2_ECMWF:_view3D->SetModelE(_pModelECMWFTemperature); break;
-	defaut:
-		break;
-	}
-// 	_view3D->SetModelE(_pModelCMA				);
-// 	_view3D->SetModelE(_pModelCPTEC				);
-// 	_view3D->SetModelE(_pModelECCC				);
-// 	_view3D->SetModelE(_pModelECMWF				);
-// 	_view3D->SetModelE(_pModelJMA				);
-// 	_view3D->SetModelE(_pModelKMA				);
-// 	_view3D->SetModelE(_pModelNCEP				);
-//	_view3D->SetModelE(_pModelECMWFTemperature	);
-//	_view3D->SetModelT(_pModelECMWFTemperatureT);
+	_view3D->SetModelE(_pModel);
 
 	// 	_view3D->SetData(_gridDataVarB);
 	// 	_view3D->SetData(_varE);
@@ -378,7 +350,7 @@ void MainWindow::createSceneAndView(){
 // 	_view3D->SetContourIntervalE(_listContourUnionMinE, _listContourUnionMaxE);
 	// 	_view3D->SetContourMean(_listContourMeanB);
 	_view3D->SetContourMean(_listContourEnsembleMeanB);
-	_view3D->SetContour(_listContourE);
+//	_view3D->SetContour(_listContourE);
 // 	_view3D->SetContourMean(_listContourE1);
 // 	_view3D->SetContour(_listContourE2);
 	_view3D->SetMultiStatistic(_listContourEnsembleMin_3, _listContourEnsembleMax_3);
@@ -387,7 +359,6 @@ void MainWindow::createSceneAndView(){
 
 	setCentralWidget(_view3D);
 }
-
 
 void MainWindow::createDockWidgets() {
 	setDockOptions(QMainWindow::AnimatedDocks);
@@ -1100,20 +1071,22 @@ void MainWindow::readLabels(){
 	}
 }
 
-
 void MainWindow::onSelectBackgroundMean(bool bChecked) {
 	_pModel->SetBgFunctionMean(MeteModel::bg_mean);
 	_view3D->ReloadTexture();
 }
+
 void MainWindow::onSelectBackgroundVari(bool bChecked) {
 	_pModel->SetBgFunctionMean(MeteModel::bg_vari);
 	_view3D->ReloadTexture();
 
 }
+
 void MainWindow::onSelectBackgroundCluster(bool bChecked) {
 	_pModel->SetBgFunctionMean(MeteModel::bg_cluster);
 	_view3D->ReloadTexture();
 }
+
 void MainWindow::onSelectBackgroundSDF(bool bChecked) {
 	_pModel->SetBgFunctionMean(MeteModel::bg_sdf);
 	_view3D->ReloadTexture();

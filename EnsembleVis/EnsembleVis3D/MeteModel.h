@@ -1,8 +1,4 @@
-/*
-	model of the meteorology data
-	Mingdong
-	2017/05/05
-*/
+
 #pragma once
 #include <QGLWidget>
 #include "ContourGenerator.h"
@@ -11,7 +7,11 @@
 
 class DataField;
 
-
+/*
+	model of the meteorology data
+	Mingdong
+	2017/05/05
+*/
 class MeteModel
 {
 public:
@@ -51,7 +51,9 @@ public:
 	virtual QList<ContourLine> GetContourMin(){ return _listContourMinE; }
 	virtual QList<ContourLine> GetContourMax(){ return _listContourMaxE; }
 	virtual QList<ContourLine> GetContourMean(){ return _listContourMeanE; }
-	virtual QList<QList<ContourLine>> GetContour() { return _listContour; }
+	virtual QList<QList<ContourLine>> GetContour();
+	virtual QList<QList<ContourLine>> GetContourBrushed();
+	virtual QList<QList<ContourLine>> GetContourNotBrushed();
 	virtual QList<UnCertaintyArea*> GetUncertaintyArea(){ return _listUnionAreaE; }
 	virtual int GetClusters() { return _nClusters; }
 	virtual QList<ContourLine> GetContourMin(int nLabel) { return _listContourMinEC[nLabel]; }
@@ -66,85 +68,10 @@ public:
 		return _listUnionAreaEG;
 	}
 protected:
-	// the data
-	DataField* _pData;
-
-	// signed distance function
-	DataField* _pSDF;
-
-	// data of each cluster
-	QList<DataField*> _listClusterData;
-
-	// cluster centers transfered back
-	double* _pClusterCenter;
-
-	// number of ensemble members
-	int _nEnsembleLen;
-	int _nWidth;
-	int _nHeight;
-	// width*height
-	int _nLen;
-
-	int _nFocusX;
-	int _nFocusY;
-	int _nFocusW;
-	int _nFocusH;
-	int _nFocusLen;
-
-	int _nWest;
-	int _nEast;
-	int _nSouth;
-	int _nNorth;
-	int _nFocusWest;
-	int _nFocusEast;
-	int _nFocusSouth;
-	int _nFocusNorth;
-
-
-
-	// list of the uncertainty area of union of E
-	QList<UnCertaintyArea*> _listUnionAreaE;
-	QList<ContourLine> _listContourMinE;
-	QList<ContourLine> _listContourMaxE;
-	QList<ContourLine> _listContourMeanE;
-	QList<QList<ContourLine>> _listContour;
-
-	// list of the uncertainty area of union of E	(clustered)
-	QList<QList<UnCertaintyArea*>> _listUnionAreaEC;
-	QList<QList<ContourLine>> _listContourMinEC;
-	QList<QList<ContourLine>> _listContourMaxEC;
-	QList<QList<ContourLine>> _listContourMeanEC;
-	QList<QList<QList<ContourLine>>> _listContourC;
-
-	// list of the uncertainty area of union of E	(for gradient)
-	QList<QList<UnCertaintyArea*>> _listUnionAreaEG;
-	QList<QList<ContourLine>> _listContourMinEG;
-	QList<QList<ContourLine>> _listContourMaxEG;
-
-	// length of each cluster
-	QList<int> _listClusterLen;
-	// array of labels
-	int* _arrLabels;
-	// labels of each grid point
-	int* _arrGridLabels;
-	// number of clusters
-	int _nClusters;
-
-
-	// cluster mean of pca
-	QList<QList<ContourLine>> _listContourMeanPCA;
-
-	// file name of the data
-	QString _strFile;
-
-	// whether read binary file
-	bool _bBinaryFile;
-
-	// filtered the data between grids
-	bool _bFilter;
-private:
+	virtual void initializeModel();				// specialized model initialization
+protected:
 	// read ensemble data from text file
-	void readDataFromText();
+	virtual void readDataFromText();
 
 	// pca and clustering
 	void doPCA();
@@ -176,15 +103,74 @@ protected:
 	enumBackgroundFunction _bgFunction;
 public:
 	void SetBgFunctionMean(enumBackgroundFunction f) { _bgFunction = f; }
-private:
+	// brushing
+	virtual void Brush(int nLeft, int nRight, int nTop, int nBottom);
+protected:
 	// do the spatial clustering for the grid point above threshold value
 	void doSpatialClustering();
-private:
-	// Point list
-	std::vector<Point> _points;
 public:
 	const std::vector<Point> GetPoints() { return _points; }
-	
 
+protected:	
+	// 1.raw data
+	DataField* _pData;						// the data		
+	int _nEnsembleLen;						// number of ensemble members
+	int _nWidth;
+	int _nHeight;	
+	int _nLen;								// _nWidth*_nHeight
+	int _nFocusX;
+	int _nFocusY;
+	int _nFocusW;
+	int _nFocusH;
+	int _nFocusLen;							 //_nFocusW*_nFocusH
+	int _nWest;
+	int _nEast;
+	int _nSouth;
+	int _nNorth;
+	int _nFocusWest;
+	int _nFocusEast;
+	int _nFocusSouth;
+	int _nFocusNorth;
+
+	// 2.basic contours and areas
+	QList<UnCertaintyArea*> _listUnionAreaE;			// list of the uncertainty area of union of E
+	QList<ContourLine> _listContourMinE;				// list of contours of minimum of E
+	QList<ContourLine> _listContourMaxE;				// list of contours of maximum of E
+	QList<ContourLine> _listContourMeanE;				// list of contours of mean of E
+	QList<QList<ContourLine>> _listContour;				// list of contours of ensemble members
+	QList<QList<ContourLine>> _listContourBrushed;		// list of brushed contours of ensemble members
+	QList<QList<ContourLine>> _listContourNotBrushed;	// list of not brushed contours of ensemble members
+
+protected:
+	// 3.clustering related
+	QList<QList<UnCertaintyArea*>> _listUnionAreaEC;	// list of the uncertainty area of union of E	(clustered)
+	QList<QList<ContourLine>> _listContourMinEC;
+	QList<QList<ContourLine>> _listContourMaxEC;
+	QList<QList<ContourLine>> _listContourMeanEC;
+	QList<QList<QList<ContourLine>>> _listContourC;
+	
+	QList<QList<UnCertaintyArea*>> _listUnionAreaEG;	// list of the uncertainty area of union of E	(for gradient)
+	QList<QList<ContourLine>> _listContourMinEG;
+	QList<QList<ContourLine>> _listContourMaxEG;
+
+	DataField* _pSDF;						// signed distance function	
+	QList<DataField*> _listClusterData;		// data of each cluster	
+	double* _pClusterCenter;				// cluster centers transfered back
+
+	
+	QList<int> _listClusterLen;		// length of each cluster	
+	int* _arrLabels;				// array of labels	
+	int* _arrGridLabels;			// labels of each grid point	
+	int _nClusters;					// number of clusters
+
+	
+	QList<QList<ContourLine>> _listContourMeanPCA;	// cluster mean of pca
+
+	std::vector<Point> _points;	// Point list of the result of clustering
+
+	// 0.io related	
+	QString _strFile;				// file name of the data	
+	bool _bBinaryFile;				// whether read binary file	
+	bool _bFilter;					// filtered the data between grids	
 };
 

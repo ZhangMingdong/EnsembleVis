@@ -105,6 +105,10 @@ MyGLWidget::MyGLWidget(QWidget *parent)
 , _bShowClusterBV(false)
 , _bShowLineChart(false)
 , _bShowContourLineTruth(false)
+, _nSelectedLeft(-1)
+, _nSelectedRight(-1)
+, _nSelectedTop(-1)
+, _nSelectedBottom(-1)
 {
 	/*
 	_fLeft = -0.5;
@@ -200,6 +204,21 @@ void MyGLWidget::initializeGL()
 
 void MyGLWidget::paintGL(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// draw selected point
+	glLineWidth(2.0f);
+	glColor4f(1.0, .3, 0.0, 1.0);
+	double fX0 = _fLeft + _nSelectedLeft*_fScaleW;
+	double fY0 = _fBottom + _nSelectedBottom*_fScaleH;
+	double fX1 = _fLeft + _nSelectedRight*_fScaleW;
+	double fY1 = _fBottom + _nSelectedTop*_fScaleH;
+	glBegin(GL_LINE_LOOP);
+	glVertex2f(fX0,fY0);
+	glVertex2f(fX0,fY1);
+	glVertex2f(fX1,fY1);
+	glVertex2f(fX1,fY0);
+	glEnd();
+
 
 	for each (MeteLayer* pLayer in _vecLayers)
 	{
@@ -717,17 +736,54 @@ void MyGLWidget::mousePressEvent(QMouseEvent * event)
 		m_nMouseState = 1;
 		_ptLast = event->pos();
 	}
+	else if (event->button() == Qt::RightButton)
+	{
+		m_nMouseState = 2;
+		select(_nSelectedLeft, _nSelectedBottom,event->pos());
+		_nSelectedRight = _nSelectedLeft;
+		_nSelectedTop = _nSelectedBottom;
+	}
 	updateGL();
 }
 
 void MyGLWidget::mouseReleaseEvent(QMouseEvent * event)
 {
+	if (m_nMouseState == 2)
+	{
+		select(_nSelectedRight, _nSelectedTop, event->pos());
+		if (_nSelectedRight < _nSelectedLeft)
+		{
+			int nTemp = _nSelectedRight;
+			_nSelectedRight = _nSelectedLeft;
+			_nSelectedLeft = nTemp;
+		}
+		if (_nSelectedTop < _nSelectedBottom)
+		{
+			int nTemp = _nSelectedTop;
+			_nSelectedTop = _nSelectedBottom;
+			_nSelectedBottom = nTemp;
+		}
+
+		if (_nSelectedRight > _nSelectedLeft&&_nSelectedTop>_nSelectedBottom)
+		{
+			for each (MeteLayer* pLayer in _vecLayers)
+			{
+				pLayer->Brush(_nSelectedLeft, _nSelectedRight, _nSelectedTop, _nSelectedBottom);
+			}
+		}
+	}
+	m_nMouseState = 0;
+	updateGL();
 
 }
 
 void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 {
-	if (m_nMouseState==1){	// left button down
+	if (m_nMouseState==2)
+	{
+		select(_nSelectedRight, _nSelectedTop, event->pos());
+	}
+	else if (m_nMouseState==1){	// left button down
 		if (false){
 
 			// calculate current pos
@@ -762,14 +818,12 @@ void MyGLWidget::mouseMoveEvent(QMouseEvent *event)
 	}
 }
 
-void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
+
+void MyGLWidget::select(int& nX, int&nY, const QPoint& pt) {
+
 
 	// last pickIndex
 	PickIndex pick;
-
-	QPoint pt = event->pos();
-// 	qDebug() << pt.x() << "\t" << pt.y();
-
 	// 1.用glSelectBuffer()函数指定用于返回点击记录的数组
 	GLuint selectBuf[BUFSIZE];
 	glSelectBuffer(BUFSIZE, selectBuf);
@@ -788,7 +842,7 @@ void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
 	glPushMatrix();
 	glLoadIdentity();
 	// create 5*5 pixel picking region near cursor location
-	gluPickMatrix((GLdouble)event->pos().x(), (GLdouble)(viewport[3] - event->pos().y()), 1.0, 1.0, viewport);
+	gluPickMatrix((GLdouble)pt.x(), (GLdouble)(viewport[3] - pt.y()), 1.0, 1.0, viewport);
 	gluPerspective(30.0, (GLfloat)width() / (GLfloat)height(), .1, 100.0);
 	glMatrixMode(GL_MODELVIEW);
 	// 5.交替调用绘制图元的函数和操纵名字栈的函数，为每个相关的图元分配一个适当的名称
@@ -802,11 +856,14 @@ void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
 	GLint hits = glRenderMode(GL_RENDER);
 	if (processHits(hits, selectBuf, pick))
 	{
-		_nSelectedX = pick._nX;
-		_nSelectedY = pick._nY;
-		qDebug() << pick._nX << "\t" << pick._nY << "\t" << _pDataT[_nSelectedY*g_focus_w + _nSelectedX];
+		nX = pick._nX;
+		nY = pick._nY;
+		qDebug() << pick._nX << "\t" << pick._nY << "\t" << _pDataT[nY*g_focus_w + nX];
 		updateGL();
 	}
+}
+void MyGLWidget::mouseDoubleClickEvent(QMouseEvent *event){
+	select(_nSelectedX, _nSelectedRight, event->pos());
 }
 
 void MyGLWidget::wheelEvent(QWheelEvent * event)
@@ -905,13 +962,6 @@ void MyGLWidget::SetModelT(MeteModel* pModelT) {
 void MyGLWidget::SetVar(const double* pVM, const double *pMV){
 	_gridDataMeanVarB = pMV;
 	_gridDataVarMeanB = pVM;
-}
-
-void MyGLWidget::SetContour(QList<ContourLine>* listContour){
-	for (int i = 0; i < g_temperatureLen; i++)
-	{
-		_listContour[i] = listContour[i];
-	}
 }
 
 void MyGLWidget::SetContourTruth(QList<ContourLine>* listContourTruth){

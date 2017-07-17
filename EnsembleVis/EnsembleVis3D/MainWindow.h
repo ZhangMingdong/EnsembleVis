@@ -149,17 +149,7 @@ private:
 
 	
 
-	MeteModel* _pModelCPTEC;
-	MeteModel* _pModelKMA;
-	MeteModel* _pModelNCEP;
-	MeteModel* _pModelCMA;
-	MeteModel* _pModelJMA;
-	MeteModel* _pModelECCC;
-	MeteModel* _pModelECMWF;
 
-
-	MeteModel* _pModelECMWFTemperature;
-//	MeteModel* _pModelECMWFTemperatureT;
 
 	// used model
 	MeteModel* _pModel;

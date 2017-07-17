@@ -34,11 +34,12 @@ private:
 	GLuint texID[2];
 
 	GLUtesselator *_tobj;                    /**< 网格化对象指针 */
-
-// 	GLFont font;                /**< 定义一个字体实例 */
+	
 public:
 	// reload texture
 	virtual void ReloadTexture();
+	// brushing
+	virtual void Brush(int nLeft, int nRight, int nTop, int nBottom);
 
 };
 

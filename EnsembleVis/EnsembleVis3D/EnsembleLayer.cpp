@@ -351,11 +351,17 @@ void EnsembleLayer::draw(DisplayStates states){
 			*/
 		}
 		else {
-			QList<QList<ContourLine>> contours = _pModel->GetContour();
-			glColor4f(1.0, 0.0, 0.0, 1.0);
-			for (int i = 0; i < contours.size(); i++)
+			QList<QList<ContourLine>> contoursBrushed = _pModel->GetContourBrushed();
+			QList<QList<ContourLine>> contoursNotBrushed = _pModel->GetContourNotBrushed();
+			glColor4f(.8, 0.2, 0.0, .8);
+			for (int i = 0; i < contoursBrushed.size(); i++)
 			{
-				drawContourLine(contours[i]);
+				drawContourLine(contoursBrushed[i]);
+			}
+			glColor4f(.2, 0.8, 0.0, .2);
+			for (int i = 0; i < contoursNotBrushed.size(); i++)
+			{
+				drawContourLine(contoursNotBrushed[i]);
 			}
 		}
 	}
@@ -609,4 +615,8 @@ void EnsembleLayer::tessSegmentation(GLuint gllist, QList<UnCertaintyArea*> area
 		delete[]contourBuffer[i];
 	}
 	delete[]contourBuffer;
+}
+
+void EnsembleLayer::Brush(int nLeft, int nRight, int nTop, int nBottom) {
+	_pModel->Brush(nLeft, nRight, nTop, nBottom);
 }

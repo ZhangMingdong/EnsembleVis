@@ -48,6 +48,9 @@ void DataField::SetData(int l, int y, int x, double dbValue) {
 double DataField::GetData(int l, int bias) {
 	return _pBuf[l*_nW*_nH + bias];
 }
+double DataField::GetData(int l, int r, int c) {
+	return _pBuf[l*_nW*_nH + r*_nW + c];
+}
 
 void DataField::DoStatistic() {
 	int nLen = _nW*_nH;

@@ -159,13 +159,12 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 	// 4.statistic
 	_pData->DoStatistic();
 
-	
-	// DBSCAN
-	for (size_t i = 0; i < _nLen; i++)
-	{
-		_arrGridLabels[i] = -3;
-	}
 	if (g_bSpatialClustering) {
+		for (size_t i = 0; i < _nLen; i++)
+		{
+			_arrGridLabels[i] = -3;
+		}
+		// DBSCAN
 		doSpatialClustering();
 	}
 
@@ -230,8 +229,6 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 		generator.Generate(_pData->GetMean(), _listContourMeanE, g_fThreshold, _nWidth, _nHeight, _nFocusX, _nFocusY, _nFocusW, _nFocusH);
 	}
 
-
-
 	generateContourImp(_listContourMinE, _listContourMaxE, _listUnionAreaE);
 
 	if (g_bClustering)
@@ -287,9 +284,60 @@ void MeteModel::InitModel(int nEnsembleLen, int nWidth, int nHeight, int nFocusX
 			}
 		}
 	}
+	// specializaed initialization
+	initializeModel();
 }
 
 void MeteModel::readDataFromText() {
+
+	int nTimeStep = g_nTimeStep;
+
+	QFile file(_strFile);
+
+	if (!file.open(QIODevice::ReadOnly)) {
+		QMessageBox::information(0, "error", file.errorString());
+	}
+
+	int nCount = 0;
+	QTextStream in(&file);
+	int tt = 0;
+	while (!in.atEnd()) {
+		for (size_t t = 0; t <= nTimeStep; t++)
+		{
+			for (int i = 0; i < _nEnsembleLen; i++)
+			{
+				QString line = in.readLine();
+				for (int j = 0; j < _nLen; j++)
+				{
+					QString line = in.readLine();
+					nCount++;
+					if (t == nTimeStep)
+						_pData->SetData(i, j, line.toFloat());
+					int r = j / _nWidth;
+					int c = j%_nWidth;
+					
+					if (_bFilter&&c < _nWidth - 1) {
+
+						in.readLine();
+						nCount++;
+					}
+					else if (_bFilter&&r < _nHeight - 1) {
+						for (size_t ii = 0, length = 2 * (_nWidth - 1) + 1; ii < length; ii++)
+						{
+							in.readLine();
+							nCount++;
+						}
+					}
+				}
+			}
+		}
+		tt++;
+		if(tt ==2) break;		// use the second data
+
+	}
+
+	file.close();
+	/*
 	int nTimeStep = g_nTimeStep;
 
 	QFile file(_strFile);
@@ -313,11 +361,12 @@ void MeteModel::readDataFromText() {
 				}
 			}
 		}
-			break;
+		break;
 
 	}
 
 	file.close();
+	*/
 }
 
 void MeteModel::doPCA() {
@@ -790,4 +839,70 @@ void MeteModel::doSpatialClustering() {
 	delete[] arrState;
 }
 
+void MeteModel::initializeModel() {
+}
 
+void MeteModel::Brush(int nLeft, int nRight, int nTop, int nBottom) {
+	_listContourBrushed.clear();
+	_listContourNotBrushed.clear();
+
+	int nFocusL = _nWest + 180;
+	int nFocusB = _nSouth + 90;
+
+	int nFocusW = _nEast - _nWest;
+	int nFocusH = _nNorth - _nSouth;
+
+	nLeft -= nFocusL;
+	nRight -= nFocusL;
+	nTop -= nFocusB;
+	nBottom -= nFocusB;
+
+	if (nLeft < 0) nLeft = 0;
+	if (nBottom < 0)nBottom = 0;
+	if (nRight > nFocusW) nRight = nFocusW;
+	if (nTop > nFocusH) nTop = nFocusH;
+
+	for (size_t l = 0; l < _nEnsembleLen; l++)
+	{
+		bool bCover = false;
+		bool bHigher = false;
+		bool bLower = false;
+
+		for (int i = nBottom; i <= nTop; i++)
+		{
+			for (int j = nLeft; j <= nRight; j++)
+			{
+//				std::cout << _pData->GetData(l, i, j) << endl;
+				_pData->GetData(l, i, j)>g_fThreshold ? (bHigher = true) : (bLower = true);
+				if (bHigher&&bLower) {
+					bCover = true;
+					break;
+				}
+			}
+			if (bCover)
+			{
+				break;
+			}
+		}
+		if (bCover)
+		{
+			_listContourBrushed.push_back(_listContour[l]);
+		}
+		else _listContourNotBrushed.push_back(_listContour[l]);
+	}
+}
+
+QList<QList<ContourLine>> MeteModel::GetContourBrushed()
+{
+	return _listContourBrushed;
+}
+
+QList<QList<ContourLine>> MeteModel::GetContourNotBrushed()
+{
+	return _listContourNotBrushed;
+}
+
+QList<QList<ContourLine>> MeteModel::GetContour()
+{
+	return _listContour;
+}

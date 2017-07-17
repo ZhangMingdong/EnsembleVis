@@ -45,6 +45,8 @@ public:
 	void Show(bool bShow){ _bShow = bShow; }
 	// reload texture
 	virtual void ReloadTexture() {};
+	// brushing
+	virtual void Brush(int nLeft, int nRight, int nTop, int nBottom) {};
 private:
 	// implementation for render
 	virtual void draw(DisplayStates states) = 0;

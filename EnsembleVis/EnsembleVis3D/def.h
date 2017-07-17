@@ -18,7 +18,7 @@ int const g_dataLen = g_grid_width*g_grid_height;
 
 
 
-double const g_temperature = -10;
+//double const g_temperature = -10;
 
 
 int const g_focus_x = 0;
@@ -51,82 +51,20 @@ const int g_gradient_l = 15;
 
 
 const int g_temperatureLen = 1;
-// const int g_temperatureLen = 3;
-// const int g_temperatureLen = 6;
-// const int g_temperatureLen = 11;
-// const int g_temperatureLen = 49;
-const double g_arrTemperatures[] = {
-	-10,
-
-	-20,
-	20,
-
-	0,
-
-	-30,
-	-10,
-	10,
-
-	-25,
-	-15,
-	-5,
-	5,
-	15,
-
-	-29,
-	-28,
-	-27,
-	-26,
-	-24,
-	-23,
-	-22,
-	-21,
-	-19,
-	-18,
-	-17,
-	-16,
-	-14,
-	-13,
-	-12,
-	-11,
-	-9,
-	-8,
-	-7,
-	-6,
-	-4,
-	-3,
-	-2,
-	-1,
-	1,
-	2,
-	3,
-	4,
-	6,
-	7,
-	8,
-	9,
-	11,
-	12,
-	13,
-	14,
-	16,
-	17,
-	18,
-	19
-};
 
 
 // new switch
 const bool g_bClustering = false;			// whether do clustering (PCA+AHC)
 const bool g_bSpatialClustering = false;	// whether do spatial clustering (DBSCAN)
 
-//const double g_fThreshold = 273.16-10;
-const double g_fThreshold = 1.0;
+const double g_fThreshold = 273.16-15;
+//const double g_fThreshold = 2.0;
 const int g_nMinPts = 110;
 const double g_dbEps = 6;
 
-const bool g_bGlobalArea = true;
+const bool g_bGlobalArea = false;
 
+// whether filter the half degree data
 const bool g_bFilter = true;
 //	bFilter = false;
 const bool g_bSubArea = false;
@@ -154,26 +92,29 @@ enum enumMeteModel
 	, PRE_KMA
 	, PRE_NCEP
 	, T2_ECMWF
+	, T2_Reanalysis
 };
 
 // used model
 //const enumMeteModel g_usedModel = PRE_CMA;
 //const enumMeteModel g_usedModel = PRE_CPTEC;
 //const enumMeteModel g_usedModel = PRE_ECCC;
-const enumMeteModel g_usedModel = PRE_ECMWF;
+//const enumMeteModel g_usedModel = PRE_ECMWF;
 //const enumMeteModel g_usedModel = PRE_JMA;
 //const enumMeteModel g_usedModel = PRE_KMA;
 //const enumMeteModel g_usedModel = PRE_NCEP;
 //const enumMeteModel g_usedModel = T2_ECMWF;
+const enumMeteModel g_usedModel = T2_Reanalysis;
 
 // just use white to show the uncertainty area
 const bool g_bShowUncertaintyOnly = false;
 
 // calculate the uncertainty band based on the signed distance function, otherwise calculate directly
-const bool g_bSDFBand = true;
+const bool g_bSDFBand = false;
 
 // the index of the cluster to generate confidence Ellipse, -1 means all
-const int g_nConfidenceEllipseIndex = 5;
+const int g_nConfidenceEllipseIndex = -1;
 
 // the Mahalanobis distance used in calculating the confidence ellipse
 const double g_dbMDis = 2.0;
+

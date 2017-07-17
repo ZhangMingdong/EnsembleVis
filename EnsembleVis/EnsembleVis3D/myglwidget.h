@@ -82,7 +82,6 @@ private:
 	const double* _gridDataMeanVarB;
 	// variance of the means of Bayesian
 	const double* _gridDataVarMeanB;
-	QList<ContourLine> _listContour[g_temperatureLen];
 	// truth contour
 	QList<ContourLine> _listContourTruth[g_temperatureLen];
 	QList<ContourLine> _listContourMean[g_temperatureLen];
@@ -109,6 +108,14 @@ private:
 	// the selected x and y
 	int _nSelectedX;
 	int _nSelectedY;
+
+	// selected area, used for brushing
+	int _nSelectedLeft;
+	int _nSelectedRight;
+	int _nSelectedTop;
+	int _nSelectedBottom;
+
+	
 
 	const EnsembleIntersections* _arrIntersections;
 
@@ -150,6 +157,9 @@ private:
 	// generate the background texture
 	void generateBackground();
 
+	// select the grid point when clicked at pt
+	void select(int& nX, int&nY, const QPoint& pt);
+
 
 public:
 	void SetLabels(const int* labels);
@@ -158,7 +168,6 @@ public:
 	void SetModelE(MeteModel* pModelE);
 	void SetModelT(MeteModel* pModelT);
 	void SetVar(const double* pVM, const double *pMV);
-	void SetContour(QList<ContourLine>* listContour);
 	void SetContourTruth(QList<ContourLine>* listContourTruth);
 	void SetContourMean(QList<ContourLine>* listContour);
 	void SetContourIntervalB(QList<ContourLine>* listContourMin, QList<ContourLine>* listContourMax);
@@ -206,6 +215,9 @@ private:
 	std::vector<MeteLayer*> _vecLayers;
 	MeteModel* _pModelE;
 	MeteModel* _pModelT;
+
+
+	
 
 };
 
